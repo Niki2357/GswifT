@@ -53,9 +53,10 @@ sudo ethtool -C "$IFACE" adaptive-rx off adaptive-tx off rx-usecs 0 tx-usecs 0
 
 # 4. Load the congestion control modules we compare against. They ship as
 #    loadable modules, so they do not appear in tcp_available_congestion_control
-#    until loaded.
+#    until loaded. -a is required: without it modprobe treats every name after
+#    the first as a module parameter and silently loads only tcp_dctcp.
 echo "--- loading congestion control modules"
-sudo modprobe tcp_dctcp tcp_bbr tcp_vegas 2>/dev/null || true
+sudo modprobe -a tcp_dctcp tcp_bbr tcp_vegas
 
 echo
 echo "=== Verification ==="

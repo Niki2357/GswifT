@@ -1,0 +1,9 @@
+[  5]   4.00-6.00   sec   477 MBytes  2.00 Gbits/sec    0   1.71 MBytes       
+[  5]   6.00-8.00   sec   476 MBytes  2.00 Gbits/sec    0   1.71 MBytes       
+[  5]   8.00-10.00  sec   477 MBytes  2.00 Gbits/sec    0   1.71 MBytes       
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-10.00  sec  2.33 GBytes  2.00 Gbits/sec    0             sender
+[  5]   0.00-10.00  sec  2.33 GBytes  2.00 Gbits/sec                  receiver
+
+iperf Done.

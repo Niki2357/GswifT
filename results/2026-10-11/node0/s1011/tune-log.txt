@@ -1,0 +1,12 @@
+=== Tuning enp129s0f0np0 on node0.gswift-config.gt-8803-dns-pg0.clemson.cloudlab.us ===
+--- CPU governor -> performance
+--- deep C-states -> disabled
+--- interrupt coalescing -> off
+--- loading congestion control modules
+
+=== Verification ===
+governor:   performance
+coalescing: Adaptive RX: off  TX: off
+cc avail:   reno cubic dctcp
+
+Done. Interface: enp129s0f0np0
