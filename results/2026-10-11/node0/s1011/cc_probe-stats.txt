@@ -1,0 +1,17 @@
+[{
+        "value": {
+            ".bss": [{
+                    "n_init": 0
+                },{
+                    "n_cong_control": 0
+                },{
+                    "n_rtt_samples": 0
+                },{
+                    "rtt_sum_us": 0
+                },{
+                    "rtt_max_us": 0
+                }
+            ]
+        }
+    }
+]

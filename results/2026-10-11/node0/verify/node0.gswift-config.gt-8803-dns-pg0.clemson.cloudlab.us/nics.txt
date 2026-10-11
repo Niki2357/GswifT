@@ -1,0 +1,4 @@
+63:00.0 Ethernet controller: Mellanox Technologies MT27800 Family [ConnectX-5]
+63:00.1 Ethernet controller: Mellanox Technologies MT27800 Family [ConnectX-5]
+81:00.0 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]
+81:00.1 Ethernet controller: Mellanox Technologies MT2892 Family [ConnectX-6 Dx]

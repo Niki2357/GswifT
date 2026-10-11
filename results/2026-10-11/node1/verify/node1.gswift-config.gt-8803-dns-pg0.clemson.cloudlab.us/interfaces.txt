@@ -1,0 +1,5 @@
+lo               UNKNOWN        127.0.0.1/8 ::1/128 
+eno12399np0      UP             130.127.134.93/22 metric 1024 fe80::bace:f6ff:fe78:906/64 
+eno12409np1      DOWN           
+enp129s0f0np0    UP             10.10.1.2/24 fe80::bace:f6ff:fecc:a2bc/64 
+enp129s0f1np1    DOWN           

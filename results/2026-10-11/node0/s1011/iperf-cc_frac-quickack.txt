@@ -1,0 +1,4 @@
+[  5]   0.00-5.00   sec  59.9 MBytes   100 Mbits/sec    0   8.74 KBytes       
+[  5]   5.00-10.01  sec  59.6 MBytes   100 Mbits/sec    0   8.74 KBytes       
+[  5]   0.00-10.01  sec   120 MBytes   100 Mbits/sec    0             sender
+[  5]   0.00-10.01  sec   119 MBytes   100 Mbits/sec                  receiver
