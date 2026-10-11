@@ -1,0 +1,4 @@
+Unloaded RTT, node0 -> node1, 100G DAC, ICMP (microseconds)
+  default (schedutil, adaptive coalescing):  min 438  avg 526  max 838  mdev 156
+  tuned node0 only (perf gov, no deep C-states, rx-usecs 0):
+                                             min  89  avg 271  max 383  mdev  39

@@ -1,0 +1,13 @@
+Very interesting direction.
+
+
+For the first progress report, I would like to see a detailed evaluation plan. In particular, please identify the hardware platform you will use and verify that it supports hardware timestamping. If you plan to use CloudLab, clearly specify which machine types provide this capability and how you intend to validate that the feature is functioning correctly.
+
+
+I would also like to understand how you plan to generate congestion scenarios. Please describe the traffic generators you will use, the range of network conditions you intend to evaluate.
+
+
+If you plan to evaluate MSwift as part of the study, please provide a concrete implementation plan. In particular, explain how you will implement packet spraying and how you will verify that traffic is being distributed as intended.
+
+
+By the end of the first progress report, we should have confidence that the required hardware and software infrastructure is available, that the key mechanisms can be implemented correctly, and that you have a well-defined methodology for evaluating their performance.

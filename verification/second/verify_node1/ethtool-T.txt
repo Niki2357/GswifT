@@ -1,0 +1,12 @@
+Time stamping parameters for enp129s0f0np0:
+Capabilities:
+	hardware-transmit
+	hardware-receive
+	hardware-raw-clock
+PTP Hardware Clock: 2
+Hardware Transmit Timestamp Modes:
+	off
+	on
+Hardware Receive Filter Modes:
+	none
+	all

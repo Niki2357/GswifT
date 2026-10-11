@@ -1,0 +1,2 @@
+100 packets transmitted, 100 received, 0% packet loss, time 101411ms
+rtt min/avg/max/mdev = 0.047/0.119/0.254/0.035 ms

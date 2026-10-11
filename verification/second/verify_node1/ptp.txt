@@ -1,0 +1,4 @@
+/dev/ptp0
+/dev/ptp1
+/dev/ptp2
+/dev/ptp3

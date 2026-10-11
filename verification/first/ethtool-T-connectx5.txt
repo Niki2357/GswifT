@@ -1,0 +1,12 @@
+Time stamping parameters for eno12399np0:
+Capabilities:
+	hardware-transmit
+	hardware-receive
+	hardware-raw-clock
+PTP Hardware Clock: 0
+Hardware Transmit Timestamp Modes:
+	off
+	on
+Hardware Receive Filter Modes:
+	none
+	all

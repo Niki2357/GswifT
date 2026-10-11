@@ -1,0 +1,15 @@
+Unloaded RTT, node0 -> node1, r6525 Clemson, 100G DAC, ICMP, 100 packets (microseconds)
+  untuned (schedutil, deep C-states, adaptive coalescing):
+      min 116  avg 395  max 518  mdev 78
+  tuned BOTH nodes (performance gov, C-states off, coalescing off):
+      min  47  avg 119  max 254  mdev 35
+  Improvement: 2.5x on minimum, 3.3x on average.
+
+PTP hardware-timestamped path delay (node0 <-> node1, idle link):
+  1338 ns one-way, stable +/- 3 ns over 60 s
+  Clock offset converged to within +/- 14 ns (servo state s2)
+
+Implied breakdown of the 47 us tuned ICMP RTT minimum:
+  ~2.7 us  network (2 x 1.34 us wire)
+  ~44 us   host stack, both ends
+  i.e. ~94% of observed application-level delay is host software.
