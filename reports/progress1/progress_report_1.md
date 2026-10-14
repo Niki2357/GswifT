@@ -5,29 +5,6 @@
 Ethan Kim, Gregory Park, Niki Hu, Xiaomeng Ye, Raymond Zhao
 Georgia Tech, Fall 2026
 
----
-
-## Response to proposal feedback
-
-Each point from the proposal feedback, and where this report answers it.
-
-| Feedback | Where addressed | Short answer |
-|---|---|---|
-| Provide a detailed evaluation plan | [Section 6](#6-evaluation-plan) | Baselines, workloads, sweep ranges, metrics, and a pass criterion for each research question. |
-| Identify the hardware platform | [Section 4.1](#41-hardware-platform) | CloudLab r6525 (Clemson), ConnectX-6 Dx 100 GbE, Ubuntu 24.04, kernel 6.8. |
-| Verify it supports hardware timestamping | [Section 4.2](#42-verifying-hardware-timestamping) | NIC supports `HWTSTAMP_FILTER_ALL`. PTP between two nodes locks within ±18 ns. |
-| Which CloudLab machine types provide this | [Section 4.1](#41-hardware-platform) | r6525. The selection criterion and a per-node check script are given, so any other node type can be qualified the same way. |
-| How you will validate the feature works correctly | [Section 4.2](#42-verifying-hardware-timestamping) | Done: TCP ping-pong with NIC timestamps on both ends. 0 missing timestamps in 60,000 round trips, network RTT 2.471 µs with 34 ns p1 to p99 spread. |
-| How you will generate congestion scenarios | [Section 6.3](#63-congestion-scenarios) | Four scenarios: switch incast, controlled router bottleneck, receiver (endpoint) congestion, and a congested path for spraying. |
-| Traffic generators | [Section 6.2](#62-traffic-generators) | neper, iperf3, and a custom synchronized incast generator. |
-| Range of network conditions | [Section 6.4](#64-parameter-ranges) | Sweep table: fan-in, load, bottleneck rate, base RTT, buffer, target delay, competing traffic, spraying fraction. |
-| MSwift implementation plan | [Section 4.6](#46-mswift-extension) | Median filter over the last H delay samples plus reordering tolerance, inside the same BPF module. |
-| How packet spraying will be implemented | [Section 4.7](#47-packet-spraying) | nftables per-packet random marking plus policy routing over two paths, one of them deliberately congested. Flow-label spraying as a second step. |
-| How you will verify spraying works | [Section 4.8](#48-verifying-spraying) | Three independent checks: per-path counters, receiver reordering, and a bimodal delay histogram. Numeric pass criteria given. |
-| Confidence that infrastructure exists and mechanisms can be built | [Sections 4.2 to 4.4](#42-verifying-hardware-timestamping) | A working BPF congestion control prototype on the target kernel: per-ACK hook, RTT samples, enforced pacing, and sub-packet-per-RTT sending all demonstrated. |
-
----
-
 ## 1. Problem Definition
 
 Swift (Kumar et al., SIGCOMM 2020) is Google's delay-based datacenter congestion
@@ -63,32 +40,20 @@ robust when packets are sprayed across paths with different delays.
 
 ## 2. Motivation
 
-**Delay is a simple, informative congestion signal.** It needs no switch support:
-no ECN marking (as DCTCP needs) and no in-network telemetry (as HPCC needs).
+Delay is a simple, informative congestion signal. It doesn't need switch support for ECN marking or in-network telemetry.
 At Google, Swift kept tail latency low at high utilization. A version that runs
 on stock Linux would bring those benefits to any datacenter operator, not just
 those with custom transport stacks.
 
-**Our own measurements show host noise is the main obstacle.** On our testbed,
-a 64-byte TCP round trip takes 71.8 µs at the median. Only **2.47 µs** of that is
-the network; the other **97% is host software** on the two endpoints
+Our own measurements show host noise is the main obstacle. On our testbed,
+a 64-byte TCP round trip takes 71.8 µs at the median. Only 2.47 µs of that is
+the network; the other 97% is host software on the two endpoints
 (Section 4.2).
 
 So a delay-based algorithm that sees software RTT is mostly measuring host
 noise. That noise varies by tens of µs, while the network delay it is trying to
 control is 2.5 µs. This makes Swift's fabric/endpoint split essential, not an
-optimization. It also makes our question concrete: can that split be recovered
-without Google's hardware path?
-
-**eBPF makes deployment realistic.** `struct_ops` congestion control loads into
-a stock kernel at runtime: no kernel rebuild, no reboot, no custom NIC driver.
-A working module could be adopted by anyone running a modern Linux kernel.
-
-**Multipath spraying is becoming common.** Load balancers such as Google's PLB
-and packet-spraying fabrics deliberately send one flow's packets down different
-paths. MSwift shows that plain Swift's throughput collapses when a fraction q of
-sprayed packets hit a congested path. Whether that collapse, and MSwift's fix,
-hold up under real Linux reordering behavior is untested.
+optimization. Adoption is easy as multi spraying is becoming common, as working module could be deployed by anyone running a modern Linux kernel.
 
 ## 3. Challenges
 
@@ -104,19 +69,9 @@ hold up under real Linux reordering behavior is untested.
 **Hardware timestamps are not available to congestion control.**
 - The NIC timestamps every packet, but the timestamps reach only the socket
   layer (`SO_TIMESTAMPING`), not the kernel's congestion-control hooks.
-- Bringing them into the control loop, or quantifying the cost of not doing so,
-  is part of the work.
-
-**The fabric/endpoint split requires the receiver's cooperation.**
-- The sender cannot see how long a packet waited inside the receiver host.
-- The receiver must measure that time and report it back. That means changing
-  both ends of the connection without breaking standard TCP.
 
 **Linux's window cannot go below 1.**
-- `snd_cwnd` is an integer with a floor of 1. A fractional window has to live in
-  the module's own state and be enforced through pacing.
-- We found that pacing below one packet per RTT is defeated by the receiver's
-  delayed ACKs unless quick ACKs are enabled (Section 4.5).
+- `snd_cwnd` is an integer with a floor of 1. We are unable to produce this part of optimization that the paper mentioned.
 
 **BPF constraints.**
 - The verifier limits loops, memory access, and per-socket state. The module gets
@@ -126,23 +81,13 @@ hold up under real Linux reordering behavior is untested.
 
 **Creating real congestion at 100 Gbps.**
 - One kernel TCP flow on our nodes reaches only about 21 Gbps, so two nodes and
-  one flow never fill the link.
-- Congestion must be built deliberately, through fan-in, shaping, or a dedicated
-  bottleneck node. The setup must also avoid host-side artifacts that look like
-  network effects: with 8 iperf3 flows, half ran at about 16.5 Gbps and half at
-  about 8.3 Gbps, likely because receive-side processing landed on shared CPU
-  cores.
-
-**Spraying collides with TCP loss recovery.**
-- Linux TCP treats reordering as a possible loss signal.
-- Spraying must be configured so that throughput changes come from the
-  congestion controller under test, not from spurious retransmissions.
+  one flow never fill the link. We plan to manually create congestion.
 
 ## 4. Methodology
 
 ### 4.1 Hardware platform
 
-**CloudLab, Clemson cluster, node type r6525**, `small-lan` profile, bare metal.
+Tested: CloudLab, Clemson cluster, node type r6525, bare metal.
 
 | Component | Value |
 |---|---|
@@ -161,17 +106,8 @@ PTP packets. Linux reports this capability as the receive filter mode `all`
 criterion. Our script `verification/scripts/verify.sh` captures the NIC model,
 timestamping capabilities, BPF kernel configuration, and tuning state of any
 node, and flags a node whose experiment NIC lacks `HWTSTAMP_FILTER_ALL`. We
-standardize on r6525 so results are comparable across sessions. Clemson has 32
-of them, enough for incast runs.
-
-**Per-session procedure.** CloudLab tuning does not persist across experiments,
-so each session runs, on every node:
-- `tune.sh`: performance CPU governor, deep C-states disabled, interrupt
-  coalescing off, comparison congestion control modules loaded.
-- `verify.sh`: records the environment.
-
-Every results folder records node type, kernel, interface, tuning state, and the
-unloaded RTT baseline for that session.
+standardize on r6525 so results are comparable across sessions.
+Possible other nodes include: xl170, c6525-25g, c6525-100g, d6515, r6615, r6525, r650, r7525, nvidiagh, sm110p, sm220u, d7525, d8545
 
 ### 4.2 Verifying hardware timestamping
 
@@ -189,8 +125,7 @@ master and node1 as slave:
 - Over the next 212 s, the master offset stayed within ±18 ns, and the measured
   path delay stayed between 1337 and 1344 ns.
 
-This shows the hardware clocks and timestamp pipeline work. However, it only
-exercises PTP packets.
+This shows the hardware clocks and timestamp pipeline work.
 
 **Level 3: hardware timestamps on TCP data (the property Swift needs).** We wrote
 a TCP ping-pong tool, `verification/scripts/hwts_pingpong.c`. It enables
@@ -228,11 +163,6 @@ uses. We ran 20,000 round trips at each message size.
      ping-pong measured 2.47 µs. The two agree to within 0.2 µs.
    - 4 KB messages raise the network RTT to 2.99 µs, consistent with longer
      time to put larger frames on the wire.
-4. **Known limit.** At 64 KB the decomposition breaks (p1 is negative). The tool
-   pairs the request's last segment with the reply's first segment, and these no
-   longer correspond once TSO and GRO split and merge packets. The Swift module
-   must therefore work with per-packet (or per-ACK) samples, never per-message
-   ones.
 
 **Additional baseline.** Tuned ICMP RTT is 64 µs min / 134 µs avg at one ping
 per second, but 23 µs / 26 µs at one ping per millisecond. Sparse probes mostly
@@ -245,7 +175,7 @@ The module implements Swift's Algorithm 1 through the kernel's `cong_control`
 hook. That hook runs on every ACK and receives a `rate_sample` that includes an
 RTT sample. Our starting reference is the kernel's `bpf_dctcp` selftest.
 
-Components, in implementation order:
+We plan to implement the following components:
 
 1. **Target-delay AIMD.**
    - Delay below target: increase cwnd by `ai / cwnd` per ACK (by `ai` per
@@ -292,15 +222,12 @@ We built and loaded a minimal module (`verification/scripts/cc_probe.bpf.c`) on
 the stock 6.8 kernel, using `bpftool struct_ops register`. It holds cwnd fixed,
 sets `sk_pacing_rate` on every ACK, and counts RTT samples.
 
-| Check | Result |
-|---|---|
-| Verifier accepts `cong_control` and writes to `snd_cwnd`, `sk_pacing_rate`, `sk_pacing_status` | Yes, loaded on first attempt |
-| Hook runs on the data path | 39,913 `cong_control` calls in a 10 s flow |
-| Per-ACK RTT samples available | Yes, on every call: min 34 µs, mean 44 µs |
-| Pacing enforced (cwnd 200, pace 2 Gbps) | **2.00 Gbps** in every interval, 0 retransmits |
+We have verified that:
+- Verifier accepts `cong_control` and writes to `snd_cwnd`, `sk_pacing_rate`, `sk_pacing_status`.
+- 39,913 `cong_control` calls in a 10 s flow.
+- Per-ACK RTT samples are available and recordable on every call.
 
-This retires the main implementation risk: every kernel-side mechanism Swift
-needs is reachable from BPF on our platform without kernel changes.
+We are confident that every kernel-side mechanism Swift needs is reachable from BPF on our platform without kernel changes.
 
 **Observation.** About 4,000 RTT samples per second at 2 Gbps is roughly one per
 7 packets, because of ACK batching. We will quantify how sample sparsity affects
@@ -308,6 +235,7 @@ control, and test receiver-side quick ACKs as a mitigation.
 
 ### 4.5 Prototype: sending less than one packet per RTT
 
+Since Linux system does not support `cwnd < 1`, we are attempting to simulate this optimization strategy by implementing fractiona windows on Linux.
 We rebuilt the probe with cwnd = 1 and pacing at 100 Mbps. At our RTT this is
 about 0.06 packets per RTT, the regime Swift uses for large incast.
 
@@ -320,38 +248,24 @@ With one packet in flight, the receiver holds the ACK until its delayed-ACK time
 fires. That limits the sender to about one packet every 31 ms, whatever the
 pacing rate. With quick ACKs, pacing controls the rate precisely.
 
-**Conclusion:** fractional windows work on Linux, provided the receiver disables
-delayed ACKs. This becomes part of our standard receiver configuration (and of
-`tune.sh`), and we will state it as a deployment requirement.
-
 ### 4.6 MSwift extension
 
-MSwift changes two things in Swift, and we add both to the same module behind a
-runtime flag.
-
-**1. Median-filtered delay.**
-- Instead of reacting to each RTT sample, the controller reacts to the median of
-  the last H samples, with `H = max(cwnd / 2, 1)`.
-- BPF per-socket private state is too small for a large window, so we take two
-  approaches and compare them:
-  - **(a) Fixed window.** Cap H at 16. Keep samples in a small sorted array in
-    per-socket storage (`BPF_MAP_TYPE_SK_STORAGE`). Insert in order and evict
-    the oldest, with bounded loops the verifier can check. Median lookup is
-    constant time.
-  - **(b) Full window.** A ring buffer in per-socket storage sized to the largest
-    H we test, with the median computed by a bounded selection. Used to check
-    whether capping H at 16 changes results.
-
-**2. Reordering tolerance.** Decrease only after k consecutive above-target
-samples (k swept from 1 to 8), rather than on the first. On the Linux side,
-`net.ipv4.tcp_reordering` and RACK settings are configured so that reordering
-caused by spraying is not treated as loss. We report nstat retransmission
-counters to show this holds.
+MSwift is an extension to the Swift evaluation, not a completed component of the current prototype. It filters recent delay samples with a median and tolerates reordering so one delayed packet does not trigger an unnecessary window decrease. We plan to implement a median window with H = max(cwnd/2, 1), initially capped at 16 samples to fit BPF storage, and compare it with baseline Swift. Reordering tolerance will require k consecutive above-target samples before a decrease; planned k values are 1, 2, 4, and 8.
 
 ### 4.7 Packet spraying
 
-Spraying needs at least two paths, one of them congested. A two-node
-`small-lan` has a single path, so the spraying topology uses four r6525 nodes:
+**Spraying Setup**
+A two-node link has only one path, so the initial experiment requires four nodes: sender, receiver, router, and background sender. The sender will use nftables per-packet random marking and policy routing to direct a selected fraction q of packets over a second path through the router. That path will have a tc-configured bottleneck and competing Cubic traffic; the remaining packets use a direct, uncongested path. ACKs will return on the direct path to isolate forward-path delay variation. We will sweep q = 0, 0.05, 0.1, 0.25, 0.5. If this controlled method works, a tc-eBPF IPv6-flow-label method with multipath routing is a more realistic follow-up.
+
+**Verification and Comparison**
+Spraying is considered valid only when three independent measurements agree:
+
+Per-path packet and byte counters match the configured q within three binomial standard deviations.
+Receiver packet captures and TCP reordering counters show reordering consistent with the delay difference between paths.
+Delay samples show fast and delayed modes, with the delayed-mode fraction approximately q.
+After this validation, we will compare baseline Swift and MSwift at each q, measuring throughput, delay, reordering, and loss. The hypothesis is that baseline Swift throughput degrades as more packets encounter the congested path, while median filtering makes MSwift's throughput-vs-q curve flatter. This remains planned work; no packet-spraying result is claimed yet.
+
+Here's a diragram for spraying topology on four r6525 nodes:
 
 ```
                    path A (direct, uncongested)
@@ -362,76 +276,6 @@ Spraying needs at least two paths, one of them congested. A two-node
                                    │ competing Cubic traffic
                               background node
 ```
-
-**Implementation step 1: nftables random spraying** (directly instantiates the
-MSwift model, in which a fraction q of packets takes the congested path):
-
-```bash
-# sender: mark a fraction q of the flow's packets (example q = 0.25)
-nft add table inet spray
-nft add chain inet spray out '{ type route hook output priority mangle; }'
-nft add rule inet spray out ip daddr $RCV tcp dport $PORT \
-    numgen random mod 100 lt 25 meta mark set 0x1 counter
-# marked packets use the routing table for path B, the rest use path A
-ip rule add fwmark 0x1 table 100
-ip route add $RCV via $ROUTER table 100
-```
-
-- Path B's congestion comes from a `tc` bottleneck on the router: a rate limit
-  (for example 10 Gbps) and a configurable buffer.
-- That bottleneck is shared with long-lived Cubic flows from the background
-  node. This produces real queuing, rather than a fixed artificial delay.
-- `netem` can add extra fixed delay on path B where we want a larger delay gap
-  between the two paths.
-
-**Implementation step 2: flow-label spraying** (closer to production practice):
-- A tc-BPF egress program rewrites the IPv6 flow label per packet.
-- The sender and router use multipath routing that hashes on the flow label
-  (`fib_multipath_hash_policy` set to include the flow label).
-- This mirrors how PLB-style load balancers and packet sprayers choose paths.
-
-**Reverse path.** ACKs return over path A only, so the delay gap comes from the
-forward direction alone. This keeps the setup aligned with the MSwift model.
-
-### 4.8 Verifying spraying
-
-We use three independent checks. Spraying is considered correct only if all
-three agree.
-
-1. **Counts.**
-   - Measured from the nftables rule counter, `ethtool -S` and `ip -s link` on
-     the router, and `tc -s qdisc` on the bottleneck.
-   - Pass: the fraction of packets on path B is within 3 binomial standard
-     deviations of q. For q = 0.25 over 10⁶ packets that is ±0.13 percentage
-     points.
-   - Byte counters cross-check that packet sizes are not skewed between paths.
-2. **Reordering.**
-   - Measured from receiver-side nstat counters (`TcpExtTCPSACKReorder`,
-     `TcpExtTCPDSACKRecv`, `TcpExtTCPOFOQueue`), plus a packet capture on the
-     receiver giving out-of-order fraction and reorder distance.
-   - Expected: reordering is about zero at q = 0 and grows with q and with the
-     path delay gap. A sprayer that is not spraying shows no reordering.
-3. **Delay bimodality (the most direct check).**
-   - Measured from a histogram of per-ACK RTT samples from the module's ring
-     buffer, and independently of NIC-timestamped delays from the
-     `hwts_pingpong` method.
-   - Expected: two modes, separated by the path B queuing delay. The mass in the
-     upper mode is about q.
-   - This validates the exact assumption MSwift's analysis rests on.
-
-**Target result:** sweep q and check whether baseline Swift's throughput falls
-roughly as 1/√q as MSwift predicts, then show that the median filter flattens
-that curve.
-
-### 4.9 Development workflow
-
-- All code and scripts live in the repository; CloudLab nodes are wiped at
-  expiry.
-- Logic is developed and unit-tested with network namespaces and veth pairs in
-  a local Linux VM.
-- CloudLab is used for timing-sensitive and congestion experiments.
-- Results are copied into `results/<date>/` with a per-session `SUMMARY.md`
-  before the reservation ends.
 
 ## 5. Related Work
 
@@ -503,7 +347,7 @@ that curve.
 
 A single kernel TCP flow reaches about 21 Gbps on our nodes, and the
 experiment link is 100 Gbps. Congestion must therefore be built on purpose. We
-use four scenarios, each targeting a specific question.
+plan to use four scenarios, each targeting a specific question.
 
 **A. Switch incast (RQ3).**
 - Up to 16 r6525 senders, with many flows each, send to one receiver through
@@ -530,24 +374,7 @@ use four scenarios, each targeting a specific question.
 Section 4.7, with path B's queue built by competing Cubic traffic at the router
 bottleneck.
 
-### 6.4 Parameter ranges
-
-| Parameter | Range | How set |
-|---|---|---|
-| Fan-in degree | 10, 50, 100, 200, 500 flows | Incast generator, flows per sender × sender nodes |
-| Offered load | 20%, 40%, 60%, 80%, 100% of bottleneck | neper rate limits / incast inter-round gap |
-| Bottleneck rate | 10, 25, 100 Gbps | Router `tc` rate (B, D); native 100G (A) |
-| Base RTT | about 25 µs (one hop), plus 10, 50, 100 µs added | `netem` delay on router |
-| Bottleneck buffer | 50 KB to 10 MB (shallow to deep) | Router qdisc limit |
-| Swift target delay | 15 to 200 µs | Module parameter (BPF map) |
-| Competing traffic | Swift alone; Swift vs Cubic; Swift vs DCTCP | Per-flow congestion control choice |
-| Message size (RPC) | 64 B to 1 MB | neper / incast generator |
-| Spraying fraction q | 0, 0.05, 0.1, 0.25, 0.5 | nftables `numgen` threshold |
-| MSwift H, k | H ∈ {1, 4, 8, 16, cwnd/2}; k ∈ {1, 2, 4, 8} | Module parameters |
-
-Each configuration runs at least 5 times. We report the median and spread.
-
-### 6.5 Metrics and how they are collected
+### 6.4 Metrics and how they are collected
 
 | Metric | Source |
 |---|---|
@@ -559,41 +386,17 @@ Each configuration runs at least 5 times. We report the median and spread.
 | Queue occupancy | `tc -s qdisc` on router, sampled |
 | Fairness | Jain's index over per-flow throughput |
 
-### 6.6 Controls for validity
-
-- **Tuning and environment.** `tune.sh` and `verify.sh` run on every node, every
-  session. The unloaded TCP RTT baseline is recorded per session, and numbers
-  from different sessions are compared only if their baselines match.
-- **Host artifacts.** Receive-queue and CPU pinning are fixed so per-flow
-  throughput differences come from congestion control, not from flows sharing
-  receive cores. The 8-flow imbalance (16.5 vs 8.3 Gbps per flow) is our test
-  case for this.
-- **Receiver configuration** is the same for all algorithms (quick ACKs on),
-  so no algorithm is disadvantaged by delayed ACKs.
-- **Stated simplifications:** configured hop counts instead of TTL echo;
-  software timestamps in the control loop (with hardware ground truth measured
-  alongside); MSwift's median window capped where BPF requires it.
-
 ## 7. Progress and Next Steps
 
 **Done:**
 - Platform selected; per-session setup and reservation workflow documented.
 - Hardware timestamping validated at all three levels, including on TCP data.
 - Host versus network delay decomposition measured.
-- Session tuning and verification scripts written and debugged (fixed a bug that
-  silently failed to load BBR and Vegas).
+- Session tuning and verification scripts ready.
 - BPF prototype confirms the per-ACK hook, RTT samples, enforced pacing, and
   sub-packet-per-RTT sending on the stock kernel.
 
 **Next milestones:**
-
-| By | Milestone |
-|---|---|
-| Progress Report 2 | Swift core (AIMD, fractional cwnd, target scaling) in BPF with ring-buffer telemetry. neper and incast generator running. Scenario B results vs Cubic, DCTCP, Vegas (RQ1, reproduction). |
-| Progress Report 2 | Spraying topology built and passing all three verification checks. |
-| Final | Incast sweeps (RQ3). Fabric/endpoint split via TCP header option (RQ2). MSwift median filter and q sweep. |
-| Stretch | NIC timestamps fed into the control loop; compare control quality with software timestamps. |
-
-**Artifacts:** scripts in `verification/scripts/` (`tune.sh`, `verify.sh`,
-`hwts_pingpong.c`, `cc_probe.bpf.c`); raw data and session summaries in
-`results/2026-10-11/` and `verification/`.
+- Implementation of plans listed under Methodology section.
+- Implementation and evaluation of MSwift
+- (Stretch goal:) evaluation on real hardware, like MCX4121A-ACAT Network Card.
