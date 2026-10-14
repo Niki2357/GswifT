@@ -3,7 +3,7 @@
 **Delay-Based Congestion Control on Commodity Linux**
 
 Ethan Kim, Gregory Park, Niki Hu, Xiaomeng Ye, Raymond Zhao
-Georgia Tech, Fall 2026
+GitHub: https://github.com/Niki2357/GswifT.git
 
 ## 1. Problem Definition
 
@@ -71,7 +71,7 @@ optimization. Adoption is easy as multi spraying is becoming common, as working 
   layer (`SO_TIMESTAMPING`), not the kernel's congestion-control hooks.
 
 **Linux's window cannot go below 1.**
-- `snd_cwnd` is an integer with a floor of 1. We are unable to produce this part of optimization that the paper mentioned.
+- `snd_cwnd` is an integer with a floor of 1. We need to artificially produce this part of optimization that the paper mentioned.
 
 **BPF constraints.**
 - The verifier limits loops, memory access, and per-socket state. The module gets
@@ -400,3 +400,5 @@ bottleneck.
 - Implementation of plans listed under Methodology section.
 - Implementation and evaluation of MSwift
 - (Stretch goal:) evaluation on real hardware, like MCX4121A-ACAT Network Card.
+
+
