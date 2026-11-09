@@ -1,0 +1,31 @@
+# sender
+hostname=amd108.utah.cloudlab.us
+node_type=c6525-25g
+kernel=6.8.0-138-generic
+os=Ubuntu 22.04.2 LTS
+cpu=AMD EPYC 7302P 16-Core Processor
+iface=enp65s0f0np0
+nic=driver: mlx5_core firmware-version: 16.28.4512 (DEL0000000015) 
+pci=Ethernet controller: Mellanox Technologies MT27800 Family [ConnectX-5]
+speed=25000Mb/s mtu=1500
+governor=
+coalesce=Adaptive RX: off  TX: off rx-usecs: 0 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5
+
+# receiver
+hostname=amd111.utah.cloudlab.us
+node_type=c6525-25g
+kernel=6.8.0-138-generic
+os=Ubuntu 22.04.2 LTS
+cpu=AMD EPYC 7302P 16-Core Processor
+iface=enp65s0f0np0
+nic=driver: mlx5_core firmware-version: 16.28.4512 (DEL0000000015) 
+pci=Ethernet controller: Mellanox Technologies MT27800 Family [ConnectX-5]
+speed=25000Mb/s mtu=1500
+governor=
+coalesce=Adaptive RX: off  TX: off rx-usecs: 0 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5

@@ -14,7 +14,7 @@ partially failed run still summarizes.
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import pandas as pd
@@ -92,19 +92,20 @@ def load_iperf(path: Path) -> IperfResult | None:
         return None
 
 
-def load_csv(path: Path) -> pd.DataFrame | None:
+def load_csv(path: Path, dtype: dict[str, type] | None = None) -> pd.DataFrame | None:
     """CSV reader tolerant of a truncated last line (process killed mid-write)."""
     if not path.exists() or path.stat().st_size == 0:
         return None
     try:
-        df = pd.read_csv(path, on_bad_lines="skip")
+        df = pd.read_csv(path, on_bad_lines="skip", dtype=dtype)
     except (pd.errors.EmptyDataError, pd.errors.ParserError):
         return None
     return df.dropna() if len(df) else None
 
 
 def load_trace(path: Path) -> pd.DataFrame | None:
-    return load_csv(path)
+    # pacing_Bps uses 2^64-1 for "unpaced", which overflows int64.
+    return load_csv(path, dtype={"pacing_Bps": float})
 
 
 def load_run(path: Path) -> Run:
@@ -127,3 +128,30 @@ def load_experiment(exp_dir: Path) -> list[Run]:
     if not exp_dir.is_dir():
         return []
     return [load_run(d) for d in sorted(exp_dir.iterdir()) if (d / "meta.txt").exists()]
+
+
+def cumulative_to_delta(runs: list[Run]) -> list[Run]:
+    """Convert since-boot nstat dumps into per-run counts.
+
+    Early runs of the Nov 9 session saved `nstat -az` (absolute totals). Runs
+    executed back to back on one sender, so a run's own counts are its totals
+    minus the previous run's. A run is treated as absolute when its
+    TcpOutSegs is at least the previous absolute run's; the first absolute
+    run has no predecessor and gets empty counters. Runs saved as deltas
+    (smaller than the running total) are left unchanged.
+    """
+    order = sorted(runs, key=lambda r: r.meta.get("date", ""))
+    prev: dict[str, float] | None = None
+    fixed: dict[Path, Run] = {}
+    for r in order:
+        out = r.nstat.get("TcpOutSegs")
+        if out is None:
+            fixed[r.path] = r
+            continue
+        if prev is None or out >= prev.get("TcpOutSegs", 0):
+            delta = {} if prev is None else {k: v - prev.get(k, 0) for k, v in r.nstat.items()}
+            prev = r.nstat
+            fixed[r.path] = replace(r, nstat=delta)
+        else:
+            fixed[r.path] = r
+    return [fixed[r.path] for r in runs]

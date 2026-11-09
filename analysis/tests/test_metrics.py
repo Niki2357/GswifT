@@ -110,3 +110,22 @@ def test_load_run_collects_meta(tmp_path: Path) -> None:
     assert run.meta["variant"] == "swift"
     assert run.name == "swift-n1"
     assert run.iperf is None and run.trace is None
+
+
+def _run_with(tmp_path: Path, name: str, date: str, out: float) -> loaders.Run:
+    d = tmp_path / name
+    d.mkdir()
+    (d / "meta.txt").write_text(f"date={date}\n")
+    (d / "nstat.txt").write_text(f"TcpOutSegs {out} 0\nTcpRetransSegs {out / 100} 0\n")
+    return loaders.load_run(d)
+
+
+def test_cumulative_to_delta(tmp_path: Path) -> None:
+    a = _run_with(tmp_path, "a", "2026-11-09T12:00", 1000)
+    b = _run_with(tmp_path, "b", "2026-11-09T12:01", 3000)    # absolute
+    c = _run_with(tmp_path, "c", "2026-11-09T12:02", 500)     # already a delta
+    fa, fb, fc = loaders.cumulative_to_delta([a, b, c])
+    assert fa.nstat == {}
+    assert fb.nstat["TcpOutSegs"] == 2000
+    assert fb.nstat["TcpRetransSegs"] == 20
+    assert fc.nstat["TcpOutSegs"] == 500

@@ -1,0 +1,14 @@
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+    pkts      bytes target     prot opt in     out     source               destination         
+   62491 171587916 MARK       tcp  --  *      enp65s0f0np0  0.0.0.0/0            0.0.0.0/0            tcp dpt:5201 statistic mode random probability 0.04999999981 MARK set 0x5
+qdisc prio 1: root refcnt 513 bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ Sent 3506885611 bytes 2396925 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+qdisc fq 10: parent 1:1 limit 10000p flow_limit 100p buckets 1024 orphan_mask 1023 quantum 3028b initial_quantum 15140b low_rate_threshold 550Kbit refill_delay 40ms timer_slack 10us horizon 10s horizon_drop 
+ Sent 3330856907 bytes 2280405 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+  flows 4 (inactive 4 throttled 0)
+  gc 0 highprio 0 throttled 0
+qdisc netem 20: parent 1:2 limit 100000 delay 299us
+ Sent 176028704 bytes 116520 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0

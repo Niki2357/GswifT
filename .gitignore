@@ -10,3 +10,7 @@ tests/*.dSYM
 __pycache__/
 .pytest_cache/
 .DS_Store
+
+# per-ACK traces are hundreds of MB per session; keep the session .tgz instead
+results/**/trace.csv
+results/**/figs/*.png.tmp

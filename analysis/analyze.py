@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from analysis import figures, summaries
-from analysis.loaders import load_experiment
+from analysis.loaders import cumulative_to_delta, load_experiment
 
 COLS = {
     "e0": ["load", "goodput_gbps", "samples", "rtt_us_min", "rtt_us_p50", "rtt_us_p99",
@@ -75,12 +75,18 @@ def main() -> None:
         df.to_csv(tables / f"{key}.csv", index=False)
         sections.append(f"## {title}\n\n{_md(df, COLS[key])}\n")
 
-    e0 = load_experiment(root / "e0_noise")
+    exps = {k: load_experiment(root / k) for k in
+            ("smoke", "e0_noise", "e1_compare", "e2_target", "e3_incast", "e4_spray", "e5_diag")}
+    every = [r for runs in exps.values() for r in runs]
+    fixed = {r.path: r for r in cumulative_to_delta(every)}
+    exps = {k: [fixed[r.path] for r in runs] for k, runs in exps.items()}
+
+    e0 = exps["e0_noise"]
     if e0:
         emit("e0", "E0: RTT noise floor (no bottleneck)", summaries.summarize_e0(e0))
         figures.e0_rtt_cdf(e0, figs / "e0_rtt_cdf.png")
 
-    e1 = load_experiment(root / "e1_compare")
+    e1 = exps["e1_compare"]
     if e1:
         df = summaries.summarize_bulk(e1)
         emit("e1", "E1: algorithm comparison at the bottleneck", df)
@@ -90,19 +96,19 @@ def main() -> None:
             if r.meta.get("variant") == "swift":
                 figures.swift_timeseries(r, figs / f"e1_trace_{r.name}.png")
 
-    e2 = load_experiment(root / "e2_target")
+    e2 = exps["e2_target"]
     if e2:
         df = summaries.summarize_e2(e2, unloaded_floor_us(root))
         emit("e2", "E2: base-target sweep (8 flows)", df)
         figures.e2_target_sweep(df, figs / "e2_target.png")
 
-    e3 = load_experiment(root / "e3_incast")
+    e3 = exps["e3_incast"]
     if e3:
         df = summaries.summarize_e3(e3)
         emit("e3", "E3: incast fan-in sweep", df)
         figures.e3_incast(df, figs / "e3_incast.png")
 
-    e4 = load_experiment(root / "e4_spray")
+    e4 = exps["e4_spray"]
     if e4:
         df = summaries.summarize_e4(e4)
         emit("e4", "E4: spraying with one slow path", df)

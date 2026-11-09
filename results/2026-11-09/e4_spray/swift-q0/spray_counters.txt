@@ -1,0 +1,13 @@
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+    pkts      bytes target     prot opt in     out     source               destination         
+qdisc prio 1: root refcnt 513 bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ Sent 2454004673 bytes 1700351 pkt (dropped 0, overlimits 0 requeues 25) 
+ backlog 0b 0p requeues 25
+qdisc fq 10: parent 1:1 limit 10000p flow_limit 100p buckets 1024 orphan_mask 1023 quantum 3028b initial_quantum 15140b low_rate_threshold 550Kbit refill_delay 40ms timer_slack 10us horizon 10s horizon_drop 
+ Sent 2454004673 bytes 1700351 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+  flows 9 (inactive 9 throttled 0)
+  gc 0 highprio 0 throttled 0
+qdisc netem 20: parent 1:2 limit 100000 delay 299us
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0

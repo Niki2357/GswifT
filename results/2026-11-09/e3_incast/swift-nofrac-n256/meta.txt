@@ -1,0 +1,13 @@
+date=2026-11-09T12:51:55-07:00
+host=node0.niki2357-325410.gt-8803-dns-pg0.utah.cloudlab.us
+iface=enp65s0f0np0
+bn_rate=10gbit
+bn_limit=300
+bn_ecn_us=50
+variant=swift-nofrac
+kcc=swift
+swift_args=--base-target 100 --trace-every 16 --min-cwnd 1 
+flows=256
+bytes=65536
+rounds=100
+bn_limit=100

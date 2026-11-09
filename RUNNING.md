@@ -49,3 +49,11 @@ python3 -m analysis.analyze results/<date>    # summary.md, tables/, figs/
 | `tools/incast/` | synchronized incast + RPC latency probe |
 | `scripts/` | setup, bottleneck, spraying, queue monitor, experiments |
 | `analysis/` | loaders, metrics, figures, `analyze.py` (`pytest analysis/tests`) |
+
+## Results in the repo
+
+`results/<date>/` holds everything except the per-ACK `trace.csv` files,
+which are hundreds of MB per session and are excluded by `.gitignore`. Keep
+the session bundle (`results-<date>.tgz` from the node) somewhere shared;
+the analysis needs the traces for the Swift-specific columns and the trace
+figures. `summary.md`, `tables/*.csv` and `figs/*.png` are committed.

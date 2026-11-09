@@ -91,10 +91,10 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     __u64 max = sk->sk_max_pacing_rate;
 
 #if SWIFT_SET_PACING_STATUS
-    // TCP internal pacing treats any delay before a send as OS jitter and
-    // shortens the next gap by up to half (tcp_update_skb_after_send). Below
-    // one packet the sender always idles waiting for an ACK, so the gap is
-    // always halved: measured 1.8x the requested rate. Ask for half.
+    // Measured on 6.8: below one packet, the achieved rate was 1.8x the
+    // requested rate (0.89x after this halving). Likely cause: internal
+    // pacing's jitter credit in tcp_update_skb_after_send, which can shorten
+    // a gap by up to half. Root cause not yet confirmed.
     if (st->cwnd_fp < SW_FP_ONE)
         rate >>= 1;
 #endif

@@ -123,7 +123,7 @@ probe_collect() {
 }
 
 nstat_reset() { nstat -n >/dev/null 2>&1 || true; }
-nstat_save()  { nstat -az > "$1/nstat.txt" 2>&1 || true; }
+nstat_save()  { nstat -z > "$1/nstat.txt" 2>&1 || true; }  # deltas since nstat_reset
 
 write_meta() {  # write_meta <dir> key=value ...
     local dir="$1"; shift

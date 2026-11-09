@@ -1,0 +1,13 @@
+swiftctl: 'swift' registered. base_target_us=1 hop_scale_us=0 default_hops=1 fs_range_us=0 fs_min_cwnd=0.100 fs_max_cwnd=100.0 ai=0.001 beta=0.800 max_mdf=0.500 min_cwnd=0.5000 max_cwnd=1 init_cwnd=0.50 retx_reset=3 median_cap=0 reorder_k=1 pace_gain_pct=0 trace_every=1
+n_init=1
+n_acks=52050
+n_samples=52050
+n_increase=0
+n_decrease=52045
+n_hold=5
+n_rto=0
+n_recovery=0
+n_frac_acks=52050
+n_ev_dropped=0
+n_no_cfg=0
+trace_records=52051
