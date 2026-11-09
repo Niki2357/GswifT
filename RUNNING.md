@@ -4,6 +4,16 @@ Two nodes on the same LAN: **node0** sends (Swift loaded here, scripts run
 here), **node1** receives (emulated bottleneck on its ingress). Any CloudLab
 type with a ConnectX-4+ NIC works; every session records which one it was.
 
+## 0. Reserving nodes
+
+- Pick the **UBUNTU24-64-STD** image (kernel 6.8). On Ubuntu 22.04 (kernel
+  5.15) Swift cannot pace below one packet; you would have to install
+  `linux-generic-hwe-22.04` and reboot (about 15 minutes).
+- Prefer **c6525-25g** again so numbers compare with the 2026-11-09 session.
+- Add your laptop's public key under CloudLab, Manage SSH Keys, before the
+  experiment starts. Then run `ssh-add ~/.ssh/id_ed25519` locally so
+  `ssh -A` can forward it.
+
 ## 1. Each node, every session
 
 ```bash
@@ -12,7 +22,8 @@ cd ~/GswifT && ./scripts/setup_node.sh   # deps, build, unit tests, tune.sh, sys
 ```
 
 Log in to node0 with agent forwarding (`ssh -A user@node0...`) so it can ssh
-to node1 without a password.
+to node1 without a password. After any reboot, rerun `./scripts/tune_session.sh`
+on both nodes (tuning and sysctls do not persist).
 
 ## 2. On node0
 
@@ -57,3 +68,23 @@ which are hundreds of MB per session and are excluded by `.gitignore`. Keep
 the session bundle (`results-<date>.tgz` from the node) somewhere shared;
 the analysis needs the traces for the Swift-specific columns and the trace
 figures. `summary.md`, `tables/*.csv` and `figs/*.png` are committed.
+
+## Next session plan
+
+Status after 2026-11-09 (log: `results/2026-11-09/SESSION.md`, report draft:
+`reports/progress2/progress_report_2.md`). Everything ran once, so the
+priority is repeats. About 1-1.5 hours of node time, in this order:
+
+1. **Repeats (5 each), reported as median and spread.** These matter most:
+   E1 at 8 flows (swift, dctcp, cubic); E2 at targets 100, 200, 300; E3 at
+   N = 64 and 128 (swift, swift-nofrac, cubic). Code to add first: a `REPS`
+   option in the run scripts and error bars in `analysis/`.
+2. **E4 redone so it tests MSwift.** Use a lower bottleneck (`BN_RATE=2gbit`)
+   so the sender CPU without TSO is not the limit. Add a run with more
+   reordering tolerance (`net.ipv4.tcp_reordering`, RACK settings) to
+   separate the median filter from Linux loss recovery. Restore `mswift-k4`.
+3. **Fractional-window fix, then E3 at N = 64.** Pace sub-packet windows from
+   the minimum or latest RTT instead of srtt, and cap the inter-packet gap.
+   Needs a module change and unit tests first.
+
+Skip E0 (clean). Leave time to copy results off before expiry.
