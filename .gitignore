@@ -1,0 +1,12 @@
+# build outputs (generated on the node)
+src/vmlinux.h
+src/*.o
+src/*.skel.h
+src/swiftctl
+tools/incast/incast_worker
+tools/incast/incast_agg
+tests/test_swift_core
+tests/*.dSYM
+__pycache__/
+.pytest_cache/
+.DS_Store
