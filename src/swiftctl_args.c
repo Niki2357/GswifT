@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "swift_core.h"
 #include "swiftctl_args.h"
 
 #define FPV(x) ((sw_u64)((x) * (double)SW_FP_ONE + 0.5))
@@ -154,6 +155,11 @@ static int validate(const struct swiftctl_opts *o)
         fprintf(stderr, "swiftctl: need fs-min-cwnd < fs-max-cwnd\n");
         return -1;
     }
+    if (p->fs_range_us) {
+        fprintf(stderr, "swiftctl: flow scaling is compiled out of the BPF "
+                        "module for now (verifier limit); use --fs-range 0\n");
+        return -1;
+    }
     if (o->cfg.trace_every && !o->trace_path) {
         fprintf(stderr, "swiftctl: --trace-every needs --trace FILE\n");
         return -1;
@@ -207,6 +213,7 @@ int swiftctl_parse(int argc, char **argv, struct swiftctl_opts *o)
         if (rc < 0)
             return -1;
     }
+    sw_params_finalize(&o->cfg.p);
     if (optind < argc) {
         fprintf(stderr, "swiftctl: unexpected argument '%s'\n", argv[optind]);
         return -1;

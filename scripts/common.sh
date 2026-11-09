@@ -17,7 +17,9 @@ IFACE="${IFACE:-$(ip -br addr | awk '$3 ~ /^10\.10\.1\./ {print $1; exit}')}"
 SELF_IP="${SELF_IP:-$(ip -br addr show "$IFACE" 2>/dev/null | awk '{split($3,a,"/"); print a[1]}')}"
 PEER="${PEER:-node1}"
 PEER_IP="${PEER_IP:-10.10.1.2}"
-OUT_ROOT="${OUT_ROOT:-/mydata/gswift}"
+if [[ -z "${OUT_ROOT:-}" ]]; then
+    if [[ -d /mydata && -w /mydata ]]; then OUT_ROOT=/mydata/gswift; else OUT_ROOT="$HOME/gswift_results"; fi
+fi
 DATE="$(date +%Y-%m-%d)"
 
 # Bottleneck defaults (receiver ingress).
@@ -35,14 +37,15 @@ die() { log "ERROR: $*"; exit 1; }
 peer() { ssh -o BatchMode=yes -o StrictHostKeyChecking=no "$PEER" "$@"; }
 
 check_env() {
+    allow_all_cc
     [[ -n "$IFACE" ]] || die "no interface with a 10.10.1.x address"
     [[ -x "$SWIFTCTL" ]] || die "swiftctl not built; run scripts/setup_node.sh"
     [[ -x "$WORKER" && -x "$AGG" ]] || die "incast tools not built"
     peer true 2>/dev/null || die "cannot ssh to $PEER without a password.
   Log in to node0 with agent forwarding (ssh -A ...) and retry."
     peer test -x "$AGG" || die "repo not built on $PEER at $REPO"
-    [[ "$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)" == performance ]] ||
-        log "WARNING: governor is not 'performance'; run verification/scripts/tune.sh"
+    [[ "$(sysctl -n net.ipv4.tcp_slow_start_after_idle)" == 0 ]] ||
+        log "WARNING: session settings missing; run scripts/tune_session.sh on both nodes"
 }
 
 # New run directory: $OUT_ROOT/$DATE/<exp>/<name>
@@ -52,16 +55,29 @@ run_dir() {
     echo "$d"
 }
 
+# Non-root programs (iperf3, incast) may only select algorithms listed in
+# tcp_allowed_congestion_control, which defaults to "reno cubic". Allow every
+# registered one; re-run after registering swift.
+ALLOW_CC='sudo sysctl -qw net.ipv4.tcp_allowed_congestion_control="$(cat /proc/sys/net/ipv4/tcp_available_congestion_control)"'
+allow_all_cc() { eval "$ALLOW_CC"; }
+
 # Swift loader lifecycle. Extra args go to swiftctl.
 SWIFT_PID=""
 start_swift() {
     local dir="$1"; shift
+    # Clear any leftover instance so this run's parameters are the ones live.
+    sudo pkill -INT -x swiftctl 2>/dev/null || true
+    for _ in $(seq 30); do
+        grep -qw swift /proc/sys/net/ipv4/tcp_available_congestion_control || break
+        sleep 0.1
+    done
     sudo "$SWIFTCTL" --trace "$dir/trace.csv" --stats "$dir/swift_stats.txt" "$@" \
-        2>"$dir/swiftctl.log" &
+        </dev/null >/dev/null 2>"$dir/swiftctl.log" &
     SWIFT_PID=$!
     for _ in $(seq 50); do
-        grep -qw swift /proc/sys/net/ipv4/tcp_available_congestion_control && return 0
-        kill -0 "$SWIFT_PID" 2>/dev/null || { cat "$dir/swiftctl.log" >&2; die "swiftctl exited"; }
+        grep -qw swift /proc/sys/net/ipv4/tcp_available_congestion_control && { allow_all_cc; return 0; }
+        # The sudo wrapper is root-owned, so probe it with sudo.
+        sudo kill -0 "$SWIFT_PID" 2>/dev/null || { cat "$dir/swiftctl.log" >&2; die "swiftctl exited"; }
         sleep 0.1
     done
     die "swift did not register; see $dir/swiftctl.log"
@@ -69,7 +85,8 @@ start_swift() {
 
 stop_swift() {
     [[ -n "$SWIFT_PID" ]] || return 0
-    sudo kill -INT "$SWIFT_PID" 2>/dev/null || true
+    # Signal swiftctl itself: sudo ignores signals from its own process group.
+    sudo pkill -INT -x swiftctl 2>/dev/null || true
     wait "$SWIFT_PID" 2>/dev/null || true
     SWIFT_PID=""
 }
@@ -91,7 +108,7 @@ qmon_stop()  {
 # Latency probe: 64 B request/response, response crosses the bottleneck.
 PROBE_WORKER_PID=""
 probe_server_start() {
-    "$WORKER" -p "$PROBE_PORT" -C cubic 2>/dev/null &
+    "$WORKER" -p "$PROBE_PORT" -C cubic </dev/null >/dev/null 2>&1 &
     PROBE_WORKER_PID=$!
 }
 probe_server_stop() { [[ -n "$PROBE_WORKER_PID" ]] && kill "$PROBE_WORKER_PID" 2>/dev/null || true; PROBE_WORKER_PID=""; }
@@ -130,9 +147,10 @@ peer_swift_up() {
             echo \$! > /tmp/gswift_peer_swiftctl.pid; sleep 1; }"
     peer grep -qw swift /proc/sys/net/ipv4/tcp_available_congestion_control ||
         die "could not register swift on $PEER (see /tmp/gswift_peer_swiftctl.log there)"
+    peer "$ALLOW_CC"
 }
 peer_swift_down() {
-    peer 'test -f /tmp/gswift_peer_swiftctl.pid && sudo kill -INT $(cat /tmp/gswift_peer_swiftctl.pid) 2>/dev/null; rm -f /tmp/gswift_peer_swiftctl.pid' || true
+    peer 'sudo pkill -INT -x swiftctl 2>/dev/null; rm -f /tmp/gswift_peer_swiftctl.pid' || true
 }
 
 ensure_iperf_server() {

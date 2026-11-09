@@ -41,6 +41,7 @@ static struct swift_params defaults(void)
         .reorder_k = 1,
         .pace_gain_pct = 0,
     };
+    sw_params_finalize(&p);
     return p;
 }
 
@@ -59,7 +60,14 @@ static void test_isqrt(void)
     CHECK(sw_isqrt(15) == 3);
     CHECK(sw_isqrt(16) == 4);
     CHECK(sw_isqrt(1000000) == 1000);
-    CHECK(sw_isqrt(0xFFFFFFFFFFFFFFFFULL) == 0xFFFFFFFFULL);
+    CHECK(sw_isqrt((1ULL << 62) - 1) == (1ULL << 31) - 1);
+    CHECK(sw_isqrt(1ULL << 60) == 1ULL << 30);
+    CHECK(sw_isqrt(0xFFFFFFFFFFFFFFFFULL) == (1ULL << 31) - 1);  // clamped
+    // Exhaustive against a reference on small inputs.
+    for (sw_u64 x = 0; x < 100000; x++) {
+        sw_u64 r = sw_isqrt(x);
+        CHECK(r * r <= x && (r + 1) * (r + 1) > x);
+    }
 }
 
 static void test_target_base_and_hops(void)
@@ -74,6 +82,7 @@ static void test_target_flow_scaling(void)
 {
     struct swift_params p = defaults();
     p.fs_range_us = 200;
+    sw_params_finalize(&p);
     // At or below fs_min: full range. At or above fs_max: none.
     CHECK(sw_target_us(&p, FP(0.05), 1) == 300);
     CHECK(sw_target_us(&p, FP(0.1), 1) == 300);

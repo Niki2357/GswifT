@@ -5,7 +5,8 @@
 //   - cong_control runs Swift's per-ACK update with rate_sample.rtt_us.
 //   - The fractional cwnd is kept in module state. Linux gets
 //     snd_cwnd = max(1, floor(cwnd)); below 1 packet the rate is enforced
-//     with sk_pacing_rate = mss * cwnd / srtt.
+//     with sk_pacing_rate = mss * cwnd / srtt (TCP internal pacing on 6.0+,
+//     the fq qdisc on older kernels; setup_node.sh installs fq).
 //   - RTO arrives as CA_EVENT_LOSS, fast recovery as set_state(Recovery).
 //   - Telemetry goes to a ring buffer, read by swiftctl.
 //
@@ -22,6 +23,10 @@ char _license[] SEC("license") = "GPL";
 
 // libbpf >= 1.2 and kernel >= 6.4: link-based struct_ops, unregistered
 // automatically when swiftctl exits. Older systems use the plain section.
+#ifndef SWIFT_SET_PACING_STATUS
+#define SWIFT_SET_PACING_STATUS 0
+#endif
+
 #ifndef SWIFT_STRUCT_OPS_SEC
 #define SWIFT_STRUCT_OPS_SEC ".struct_ops"
 #endif
@@ -85,8 +90,21 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     __u64 rate = sw_pacing_Bps(p, st->cwnd_fp, tp->mss_cache, srtt);
     __u64 max = sk->sk_max_pacing_rate;
 
+#if SWIFT_SET_PACING_STATUS
+    // TCP internal pacing treats any delay before a send as OS jitter and
+    // shortens the next gap by up to half (tcp_update_skb_after_send). Below
+    // one packet the sender always idles waiting for an ACK, so the gap is
+    // always halved: measured 1.8x the requested rate. Ask for half.
+    if (st->cwnd_fp < SW_FP_ONE)
+        rate >>= 1;
+#endif
+
     tp->snd_cwnd = sw_snd_cwnd(st->cwnd_fp);
+#if SWIFT_SET_PACING_STATUS
+    // Kernel >= 6.0: ask TCP to pace internally. Older kernels reject this
+    // write; there the sender's fq qdisc enforces sk_pacing_rate instead.
     sk->sk_pacing_status = SK_PACING_NEEDED;
+#endif
     sk->sk_pacing_rate = (rate == 0 || rate > max) ? max : rate;
     return sk->sk_pacing_rate;
 }

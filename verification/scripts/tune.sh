@@ -39,12 +39,13 @@ fi
 # 1. Keep cores at full clock. Default (schedutil) ramps up only after work
 #    arrives, which adds latency to the first packet of any exchange.
 echo "--- CPU governor -> performance"
-sudo cpupower frequency-set -g performance >/dev/null
+sudo cpupower frequency-set -g performance >/dev/null 2>&1 ||
+    echo "    (no cpufreq governor on this kernel/CPU; skipped)"
 
 # 2. Keep cores out of deep sleep. C-state exit latency is the single largest
 #    contributor to the untuned RTT.
 echo "--- deep C-states -> disabled"
-sudo cpupower idle-set -D 0 >/dev/null
+sudo cpupower idle-set -D 0 >/dev/null 2>&1 || echo "    (idle-set failed; skipped)"
 
 # 3. Interrupt coalescing lets the NIC sit on a received packet before raising
 #    an interrupt. Default is adaptive with rx-usecs 8.
@@ -60,7 +61,7 @@ sudo modprobe -a tcp_dctcp tcp_bbr tcp_vegas
 
 echo
 echo "=== Verification ==="
-echo -n "governor:   "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+echo -n "governor:   "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "n/a"
 echo -n "coalescing: "; sudo ethtool -c "$IFACE" | grep -i "^Adaptive"
 echo -n "cc avail:   "; sysctl -n net.ipv4.tcp_available_congestion_control
 echo

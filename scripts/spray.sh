@@ -19,11 +19,12 @@ MARK=0x5
 [[ -n "$IFACE" ]] || { echo "no 10.10.1.x interface" >&2; exit 1; }
 
 down() {
-    iptables -t mangle -S OUTPUT 2>/dev/null | grep -- "--set-xmark $MARK" |
-        sed 's/^-A/-D/' | while read -r rule; do
-            # shellcheck disable=SC2086
-            iptables -t mangle $rule || true
-        done
+    local rules
+    rules="$(iptables -t mangle -S OUTPUT 2>/dev/null | grep -- "--set-xmark $MARK" | sed 's/^-A/-D/' || true)"
+    while read -r rule; do
+        # shellcheck disable=SC2086
+        [[ -n "$rule" ]] && iptables -t mangle $rule || true
+    done <<< "$rules"
     tc qdisc del dev "$IFACE" root 2>/dev/null || true
     ethtool -K "$IFACE" tso on gso on >/dev/null 2>&1 || true
 }
@@ -40,7 +41,7 @@ up() {
     # Band 0: direct path. Band 1: slow path (netem). Everything defaults to 0.
     tc qdisc add dev "$IFACE" root handle 1: prio bands 2 \
         priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-    tc qdisc add dev "$IFACE" parent 1:1 handle 10: pfifo limit 10000
+    tc qdisc add dev "$IFACE" parent 1:1 handle 10: fq   # keeps pacing on the direct path
     tc qdisc add dev "$IFACE" parent 1:2 handle 20: netem delay "${delay_us}us" limit 100000
     tc filter add dev "$IFACE" parent 1: protocol ip handle "$MARK" fw flowid 1:2
 

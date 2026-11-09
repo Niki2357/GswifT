@@ -61,7 +61,7 @@ run_incast() {  # run_incast <dir> <label> <flows> <bytes> <rounds> [extra swift
     log "incast: $label N=$flows ${bytes}B x $rounds rounds -> $dir"
     begin_variant "$dir" "$label" "$@"
     printf 'flows=%s\nbytes=%s\nrounds=%s\n' "$flows" "$bytes" "$rounds" >> "$dir/meta.txt"
-    "$WORKER" -p "$INCAST_PORT" -C "$KCC" 2>"$dir/worker.log" &
+    "$WORKER" -p "$INCAST_PORT" -C "$KCC" </dev/null >/dev/null 2>"$dir/worker.log" &
     local wpid=$!
     sleep 0.5
     nstat_reset

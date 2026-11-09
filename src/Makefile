@@ -16,6 +16,9 @@ ARCH := $(shell uname -m | sed -e 's/x86_64/x86/' -e 's/aarch64/arm64/')
 # congestion control is unregistered automatically if swiftctl dies.
 KVER_OK   := $(shell printf '%s\n6.4\n' "$$(uname -r | cut -d- -f1)" | sort -V | head -1 | grep -qx 6.4 && echo 1)
 LIBBPF_OK := $(shell pkg-config --atleast-version=1.2 libbpf 2>/dev/null && echo 1)
+# Writing sk_pacing_status from a BPF congestion control needs kernel >= 6.0.
+KVER_60 := $(shell printf '%s\n6.0\n' "$$(uname -r | cut -d- -f1)" | sort -V | head -1 | grep -qx 6.0 && echo 1 || echo 0)
+
 ifeq ($(KVER_OK)$(LIBBPF_OK),11)
 STRUCT_OPS_SEC := .struct_ops.link
 else
@@ -23,7 +26,7 @@ STRUCT_OPS_SEC := .struct_ops
 endif
 
 BPF_CFLAGS = -O2 -g -target bpf -D__TARGET_ARCH_$(ARCH) -I. \
-             -DSWIFT_STRUCT_OPS_SEC='"$(STRUCT_OPS_SEC)"' -Wall -Wno-unused-function
+             -DSWIFT_STRUCT_OPS_SEC='"$(STRUCT_OPS_SEC)"' -DSWIFT_SET_PACING_STATUS=$(KVER_60) -DSW_NO_FLOW_SCALING -Wall -Wno-unused-function
 CFLAGS  ?= -O2 -g -Wall -Wextra
 LIBS     = $(shell pkg-config --libs libbpf 2>/dev/null || echo -lbpf -lelf -lz)
 
@@ -31,7 +34,7 @@ LIBS     = $(shell pkg-config --libs libbpf 2>/dev/null || echo -lbpf -lelf -lz)
 all: swiftctl
 
 info:
-	@echo "arch=$(ARCH) struct_ops_section=$(STRUCT_OPS_SEC) bpftool=$(BPFTOOL)"
+	@echo "arch=$(ARCH) struct_ops_section=$(STRUCT_OPS_SEC) set_pacing_status=$(KVER_60) bpftool=$(BPFTOOL)"
 	@echo "libbpf=$$(pkg-config --modversion libbpf 2>/dev/null) kernel=$$(uname -r)"
 
 vmlinux.h:

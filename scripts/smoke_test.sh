@@ -36,12 +36,13 @@ stop_swift
 python3 - "$OUT/trace.csv" "$OUT/frac.json" <<'EOF' && pass "fractional cwnd paces as expected" || fail "fractional cwnd"
 import json, sys, pandas as pd
 t = pd.read_csv(sys.argv[1]); t = t[t.type == 0]
-got = json.load(open(sys.argv[2]))["end"]["sum_received"]["bits_per_second"]
-srtt = t.srtt_us.median()
-want = (t.pacing_Bps.median()) * 8
-print(f"   cwnd median {t.cwnd.median():.3f}, snd_cwnd max {t.snd_cwnd.max()}, srtt {srtt:.0f} us")
-print(f"   pacing setting {want/1e6:.1f} Mb/s, measured {got/1e6:.1f} Mb/s")
-ok = t.cwnd.max() < 1 and t.snd_cwnd.max() == 1 and 0.6 < got / want < 1.15
+doc = json.load(open(sys.argv[2]))
+got = doc["end"]["sum_received"]["bits_per_second"]
+mss = doc["start"].get("tcp_mss_default", 1448)
+want = t.cwnd.median() * mss * 8 / (t.srtt_us.median() * 1e-6)   # mss * cwnd / srtt
+print(f"   cwnd median {t.cwnd.median():.3f}, snd_cwnd max {t.snd_cwnd.max()}, srtt {t.srtt_us.median():.0f} us")
+print(f"   target mss*cwnd/srtt {want/1e6:.1f} Mb/s, measured {got/1e6:.1f} Mb/s, ratio {got/want:.2f}")
+ok = t.cwnd.max() < 1 and t.snd_cwnd.max() == 1 and 0.7 < got / want < 1.3
 sys.exit(0 if ok else 1)
 EOF
 

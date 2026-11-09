@@ -16,6 +16,17 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
     "linux-tools-$(uname -r)" linux-tools-common iperf3 ethtool iproute2 \
     iptables python3 python3-numpy python3-pandas python3-matplotlib >/dev/null
 
+echo "=== libbpf"
+# Ubuntu 22.04 ships libbpf 0.5, too old for skeletons from a 6.x bpftool.
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+if ! pkg-config --atleast-version=1.0 libbpf; then
+    rm -rf /tmp/libbpf
+    git clone -q --depth 1 -b v1.4.5 https://github.com/libbpf/libbpf /tmp/libbpf
+    sudo make -s -C /tmp/libbpf/src install PREFIX=/usr/local LIBDIR=/usr/local/lib >/dev/null
+    sudo ldconfig
+fi
+echo "libbpf $(pkg-config --modversion libbpf)"
+
 echo "=== build"
 make -C "$REPO/src" info
 make -C "$REPO/src"
@@ -24,7 +35,17 @@ make -C "$REPO/tools/incast"
 make -C "$REPO/tests" test
 
 echo "=== tuning"
-"$REPO/verification/scripts/tune.sh" "$IFACE"
+bash "$REPO/verification/scripts/tune.sh" "$IFACE"
+
+echo "=== pacing qdisc"
+# Before 6.0 a BPF congestion control cannot set pacing itself, so fq enforces
+# sk_pacing_rate (applied for every algorithm, so all runs share one path).
+# On 6.0+ the module enables TCP's internal pacing and the default stays.
+if [[ "$(printf '%s\n6.0\n' "$(uname -r | cut -d- -f1)" | sort -V | head -1)" != 6.0 ]]; then
+    sudo sysctl -qw net.core.default_qdisc=fq
+    sudo tc qdisc replace dev "$IFACE" root mq 2>/dev/null || sudo tc qdisc replace dev "$IFACE" root fq
+fi
+tc qdisc show dev "$IFACE" | head -2 || true
 
 echo "=== sysctls"
 # Keep cwnd across idle periods between incast rounds (all algorithms).

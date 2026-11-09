@@ -13,17 +13,30 @@
 
 #define SW_US_PER_S 1000000ULL
 
-// Integer square root, floor(sqrt(x)). Constant 32 iterations.
+// 1 if a < b, else 0, without a branch. Requires a, b < 2^63.
+// (Branches inside loops multiply the paths the BPF verifier must explore.)
+static inline sw_u64 sw_lt(sw_u64 a, sw_u64 b)
+{
+    return (a - b) >> 63;
+}
+
+#define SW_ISQRT_MAX ((1ULL << 62) - 1)
+
+// Integer square root, floor(sqrt(x)), for x <= 2^62 - 1 (larger inputs are
+// clamped). Branch-free body, constant 32 iterations.
 static inline sw_u64 sw_isqrt(sw_u64 x)
 {
     sw_u64 res = 0, bit = 1ULL << 62;
+    if (x > SW_ISQRT_MAX)
+        x = SW_ISQRT_MAX;
+#ifdef __clang__
+#pragma unroll
+#endif
     for (int i = 0; i < 32; i++) {
-        if (x >= res + bit) {
-            x -= res + bit;
-            res = (res >> 1) + bit;
-        } else {
-            res >>= 1;
-        }
+        sw_u64 t = res + bit;
+        sw_u64 mask = 0 - (1 - sw_lt(x, t));  // all ones if x >= t
+        x -= t & mask;
+        res = (res >> 1) + (bit & mask);
         bit >>= 2;
     }
     return res;
@@ -48,6 +61,12 @@ static inline sw_u64 sw_clamp(sw_u64 v, sw_u64 lo, sw_u64 hi)
 static inline sw_u32 sw_flow_scale_us(const struct swift_params *p,
                                       sw_u64 cwnd_fp)
 {
+#ifdef SW_NO_FLOW_SCALING
+    // BPF build: the sqrt below currently exceeds the verifier's budget.
+    (void)p;
+    (void)cwnd_fp;
+    return 0;
+#else
     if (p->fs_range_us == 0)
         return 0;
     if (cwnd_fp <= p->fs_min_cwnd_fp)
@@ -55,12 +74,20 @@ static inline sw_u32 sw_flow_scale_us(const struct swift_params *p,
     if (cwnd_fp >= p->fs_max_cwnd_fp)
         return 0;
     sw_u64 inv_c = sw_inv_sqrt_fp(cwnd_fp);
-    sw_u64 inv_lo = sw_inv_sqrt_fp(p->fs_max_cwnd_fp);
-    sw_u64 inv_hi = sw_inv_sqrt_fp(p->fs_min_cwnd_fp);
+    sw_u64 inv_lo = p->fs_inv_lo_fp;
+    sw_u64 inv_hi = p->fs_inv_hi_fp;
     if (inv_hi <= inv_lo || inv_c <= inv_lo)
         return 0;
     return (sw_u32)((sw_u64)p->fs_range_us * (inv_c - inv_lo) /
                     (inv_hi - inv_lo));
+#endif
+}
+
+// Fills derived fields. Call once after setting parameters (userspace).
+static inline void sw_params_finalize(struct swift_params *p)
+{
+    p->fs_inv_lo_fp = sw_inv_sqrt_fp(p->fs_max_cwnd_fp);
+    p->fs_inv_hi_fp = sw_inv_sqrt_fp(p->fs_min_cwnd_fp);
 }
 
 static inline sw_u32 sw_target_us(const struct swift_params *p, sw_u64 cwnd_fp,
@@ -112,8 +139,8 @@ static inline sw_u32 sw_ring_median(const struct swift_state *s, sw_u32 n)
             if (j >= n)
                 break;
             sw_u32 w = s->ring[(newest - j) & SW_RING_MASK];
-            less += w < v;
-            leq += w <= v;
+            less += (sw_u32)sw_lt(w, v);
+            leq += (sw_u32)sw_lt(w, (sw_u64)v + 1);
         }
         if (less <= k && k < leq)
             return v;
