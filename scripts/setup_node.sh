@@ -64,6 +64,17 @@ make -C "$REPO/src" CLANG="$CLANG" check || echo "WARNING: bpftool verifier chec
 make -C "$REPO/tools/incast"
 make -C "$REPO/tests" test
 
+echo "=== tc"
+# The bottleneck needs fq_codel drop_batch (iproute2 >= 5.x; Ubuntu 20.04's
+# 5.5 lacks it). Without it a full queue drops up to half its packets at once.
+if ! sudo tc qdisc add dev lo root handle 1: fq_codel drop_batch 1 2>/dev/null; then
+    echo "WARNING: this tc cannot set fq_codel drop_batch. Build tc from iproute2"
+    echo "  v6.8.0 (git.kernel.org) and install it as /usr/local/sbin/tc on the receiver."
+else
+    sudo tc qdisc del dev lo root 2>/dev/null || true
+fi
+tc -V
+
 echo "=== tuning"
 bash "$REPO/verification/scripts/tune.sh" "$IFACE"
 
