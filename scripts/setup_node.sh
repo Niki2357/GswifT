@@ -12,9 +12,39 @@ IFACE="${IFACE:-$(ip -br addr | awk '$3 ~ /^10\.10\.1\./ {print $1; exit}')}"
 echo "=== packages"
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    clang llvm libbpf-dev libelf-dev zlib1g-dev pkg-config make gcc \
-    "linux-tools-$(uname -r)" linux-tools-common iperf3 ethtool iproute2 \
-    iptables python3 python3-numpy python3-pandas python3-matplotlib >/dev/null
+    clang llvm libelf-dev zlib1g-dev pkg-config make gcc git curl \
+    iperf3 ethtool iproute2 iptables python3 \
+    python3-numpy python3-pandas python3-matplotlib >/dev/null
+# Not in every release or for every kernel (mainline kernels have no
+# linux-tools package); each is optional and handled below if missing.
+for pkg in libbpf-dev "linux-tools-$(uname -r)" linux-tools-common; do
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "$pkg" >/dev/null 2>&1 ||
+        echo "(optional package $pkg not available)"
+done
+
+echo "=== clang"
+# Ubuntu 20.04 ships clang 10; use 14 from apt.llvm.org when older.
+CLANG=clang
+if (( $(clang -dumpversion | cut -d. -f1) < 14 )); then
+    if ! command -v clang-14 >/dev/null; then
+        curl -sSfL https://apt.llvm.org/llvm.sh -o /tmp/llvm.sh
+        sudo bash /tmp/llvm.sh 14 >/dev/null
+    fi
+    CLANG=clang-14
+fi
+export CLANG
+echo "$($CLANG --version | head -1)"
+
+echo "=== bpftool"
+# linux-tools-common's /usr/sbin/bpftool is a wrapper that fails when the
+# kernel-specific tools are missing; /usr/local/bin comes first in PATH.
+if ! bpftool version >/dev/null 2>&1; then
+    BPFTOOL_VER=v7.4.0
+    curl -sSfL "https://github.com/libbpf/bpftool/releases/download/$BPFTOOL_VER/bpftool-$BPFTOOL_VER-amd64.tar.gz" |
+        sudo tar -xz -C /usr/local/bin
+    sudo chmod +x /usr/local/bin/bpftool
+fi
+echo "$(bpftool version | head -1)"
 
 echo "=== libbpf"
 # Ubuntu 22.04 ships libbpf 0.5, too old for skeletons from a 6.x bpftool.
@@ -28,9 +58,9 @@ fi
 echo "libbpf $(pkg-config --modversion libbpf)"
 
 echo "=== build"
-make -C "$REPO/src" info
-make -C "$REPO/src"
-make -C "$REPO/src" check || echo "WARNING: bpftool verifier check failed; smoke_test.sh will confirm loading"
+make -C "$REPO/src" CLANG="$CLANG" info
+make -C "$REPO/src" CLANG="$CLANG"
+make -C "$REPO/src" CLANG="$CLANG" check || echo "WARNING: bpftool verifier check failed; smoke_test.sh will confirm loading"
 make -C "$REPO/tools/incast"
 make -C "$REPO/tests" test
 
