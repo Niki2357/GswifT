@@ -19,6 +19,8 @@ COLORS = {
     "swift": "#2a78d6", "cubic": "#eb6834", "dctcp": "#1baf7a", "vegas": "#eda100",
     "bbr": "#e87ba4", "mswift": "#008300", "swift-nofrac": "#6250d6",
     "mswift-k4": "#e34948", "swift-fs": "#52514e",
+    # Swift pacing variants: shades of Swift's hue, so the family reads as one.
+    "swift-pmin": "#9ec5f0", "swift-pcap": "#1d5fae",
 }
 INK, MUTED = "#0b0b0b", "#52514e"
 
@@ -185,31 +187,49 @@ def e2_target_sweep(df: pd.DataFrame, out: Path) -> Path | None:
 
 
 def e3_incast(df: pd.DataFrame, out: Path) -> Path | None:
+    """p99 round completion and retransmissions vs fan-in; one column per
+    minimum-RTO setting so the two regimes are not overlaid."""
     if df.empty or "qct_us_p99" not in df:
         return None
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.4, 3.2))
-    for v, sub in df.groupby("variant"):
-        sub = sub.sort_values("fanin")
-        _line(a1, sub, "fanin", "qct_us_p99", scale=1e3, color=_color(v), label=v)
-        _line(a2, sub, "fanin", "retrans_pct", color=_color(v), label=v)
+    df = df.assign(rto_min=df["rto_min"] if "rto_min" in df else "default")
+    rtos = sorted(df["rto_min"].unique(), key=lambda r: (r != "default", r))
+    fig, axes = plt.subplots(2, len(rtos), figsize=(4.2 * len(rtos), 5.4), squeeze=False,
+                             sharex=True, sharey="row")
     ticks = sorted(df["fanin"].dropna().unique())
-    for a in (a1, a2):
-        a.set_xscale("log", base=2)
-        a.set_xticks(ticks, [str(int(t)) for t in ticks])
-        a.minorticks_off()
-        a.set_xlabel("fan-in (flows)")
-    _plain_log(a1, "y")
-    a1.set_ylabel("p99 round completion (ms, log)")
-    a2.set_ylabel("retransmitted segments (%)")
-    a1.legend()
-    return _save(fig, out)
+    handles = {}
+    for j, r in enumerate(rtos):
+        part = df[df["rto_min"] == r]
+        for v, sub in part.groupby("variant"):
+            sub = sub.sort_values("fanin")
+            _line(axes[0][j], sub, "fanin", "qct_us_p99", scale=1e3, color=_color(v), label=v)
+            _line(axes[1][j], sub, "fanin", "retrans_pct", color=_color(v), label=v)
+            handles[v] = plt.Line2D([], [], color=_color(v), marker="o")
+        axes[0][j].set_title("Linux default min RTO (200 ms)" if r == "default"
+                             else f"min RTO {r} (route rto_min)")
+        _plain_log(axes[0][j], "y")
+        for a in axes[:, j]:
+            a.set_xscale("log", base=2)
+            a.set_xticks(ticks, [str(int(t)) for t in ticks])
+            a.minorticks_off()
+            a.set_xlim(min(ticks) / 1.25, max(ticks) * 1.25)
+        axes[1][j].set_xlabel("fan-in (flows)")
+    axes[0][0].set_ylabel("p99 round completion (ms, log)")
+    axes[1][0].set_ylabel("retransmitted segments (%)")
+    names = sorted(handles)
+    fig.legend([handles[n] for n in names], names, loc="lower center", ncol=len(names),
+               bbox_to_anchor=(0.5, 0), frameon=False)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.savefig(out)
+    plt.close(fig)
+    return out
 
 
 def e4_spray(df: pd.DataFrame, out: Path) -> Path | None:
     """Goodput vs q; one panel per loss-recovery setting (reorder_tol)."""
     if df.empty:
         return None
-    tols = sorted(df["reorder_tol"].unique()) if "reorder_tol" in df else [None]
+    tols = (sorted(df["reorder_tol"].unique(), key=lambda t: (t != "default", t))
+            if "reorder_tol" in df else [None])
     fig, axes = plt.subplots(1, len(tols), figsize=(5 * len(tols), 3.2), squeeze=False,
                              sharey=True)
     for ax, tol in zip(axes[0], tols):

@@ -24,7 +24,7 @@ COLS = {
     "e2": ["base_target_us", "goodput_gbps", "util_pct", "rtt_us_p50", "rtt_us_p99",
            "inferred_queue_us_p50", "queue_us_p50", "queue_us_p99", "rpc_us_p99",
            "decr_per_s", "retrans_pct"],
-    "e3": ["variant", "fanin", "qct_us_p50", "qct_us_p99", "fct_us_p99", "retrans_pct",
+    "e3": ["variant", "rto_min", "fanin", "qct_us_p50", "qct_us_p99", "fct_us_p99", "retrans_pct",
            "timeouts", "drops", "queue_us_p99", "frac_ack_pct"],
     "e4": ["variant", "reorder_tol", "q", "q_measured", "goodput_gbps", "util_pct", "retrans_pct",
            "reorder_events", "fast_recoveries", "decr_per_s", "rtt_us_p50"],
@@ -36,7 +36,7 @@ COLS = {
 KEYS = {
     "e1": ["flows", "variant"],
     "e2": ["base_target_us"],
-    "e3": ["fanin", "variant"],
+    "e3": ["rto_min", "fanin", "variant"],
     "e4": ["reorder_tol", "variant", "q"],
 }
 SPREAD = {

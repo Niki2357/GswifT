@@ -14,3 +14,4 @@ __pycache__/
 # per-ACK traces are hundreds of MB per session; keep the session .tgz instead
 results/**/trace.csv
 results/**/figs/*.png.tmp
+results/**/*.pcap

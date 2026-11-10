@@ -138,6 +138,7 @@ def summarize_e3(runs: list[Run]) -> pd.DataFrame:
             "rep": _f(r.meta, "rep", 1),
             "variant": r.meta.get("variant", "?"),
             "fanin": _f(r.meta, "flows"),
+            "rto_min": r.meta.get("rto_min", "default"),
             "retrans_pct": metrics.retrans_pct(r.nstat),
             "timeouts": r.nstat.get("TcpExtTCPTimeouts", np.nan),
         }

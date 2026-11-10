@@ -71,27 +71,21 @@ figures. `summary.md`, `tables/*.csv` and `figs/*.png` are committed.
 
 ## Next session plan
 
-Status after 2026-11-09 (log: `results/2026-11-09/SESSION.md`, report draft:
-`reports/progress2/progress_report_2.md`). Everything ran once, so the
-priority is repeats. About 1-1.5 hours of node time, in this order:
+Status after 2026-11-10 (logs: `results/2026-11-09/SESSION.md`,
+`results/2026-11-10/SESSION.md`; report: `reports/progress2/progress_report_2.md`).
+The Nov 10 plan (repeats, MSwift-focused E4, pacing fix) is done. Next, from
+report section 7:
 
-1. **Repeats (5 each), reported as median and spread.** These matter most:
-   E1 at 8 flows (swift, dctcp, cubic); E2 at targets 100, 200, 300; E3 at
-   N = 64 and 128 (swift, swift-nofrac, cubic). Code to add first: a `REPS`
-   option in the run scripts and error bars in `analysis/`.
-2. **E4 redone so it tests MSwift.** Use a lower bottleneck (`BN_RATE=2gbit`)
-   so the sender CPU without TSO is not the limit. Add a run with more
-   reordering tolerance (`net.ipv4.tcp_reordering`, RACK settings) to
-   separate the median filter from Linux loss recovery. Restore `mswift-k4`.
-3. **Fractional-window fix, then E3 at N = 64.** Pace sub-packet windows from
-   the minimum or latest RTT instead of srtt, and cap the inter-packet gap.
-   Needs a module change and unit tests first.
+1. **Adaptive target.** Set the target relative to a measured RTT floor (for
+   example a windowed low percentile) and test it in both host states seen on
+   Nov 10 (Swift at 100 µs gave 92% at 11:19 and 43% at 13:30).
+2. **Lone-packet recovery.** Lower rto_min from the module
+   (`bpf_setsockopt(TCP_BPF_RTO_MIN)`) and keep two packets in flight below one
+   packet per RTT; rerun E3 at N = 64, 128 against `rto_min 5ms` Cubic/DCTCP.
+3. **MSwift vs its model.** Spray per wire packet (tc-BPF after
+   segmentation) and sweep the slow-path delay relative to the target.
 
-Skip E0 (clean). Leave time to copy results off before expiry.
-
-All three are implemented: `scripts/run_session2.sh` runs the whole plan
-(`REPS` env, default 5; E4 at 3 repeats, with and without `REORDER_TOL=64`,
-on a 2 Gb/s bottleneck). The pacing fix is two new swiftctl flags,
-`--pace-min-rtt` and `--max-pace-gap US`, exposed as variants `swift-pmin`
-and `swift-pcap`. With repeats, `analysis.analyze` adds `tables/*_agg.csv`
-and median (min-max) tables, and the figures draw min-max bars.
+Node notes: if the image is Ubuntu 20.04, see `results/2026-11-10/SESSION.md`
+(mainline 6.8 kernel, decompress modules, tc from iproute2 6.8 for
+`drop_batch`). Always run E1 and E2 interleaved in one block when comparing
+targets: Swift's result at a 100 µs target drifts within a session.

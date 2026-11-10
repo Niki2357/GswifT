@@ -1,0 +1,17 @@
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[13:23:49] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t25-r1
+[13:24:12] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t50-r1
+[13:24:34] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t75-r1
+[13:24:57] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t150-r1
+[13:25:20] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t25-r2
+[13:25:42] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t50-r2
+[13:26:04] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t75-r2
+[13:26:27] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t150-r2
+[13:26:49] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t25-r3
+[13:27:12] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t50-r3
+[13:27:34] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t75-r3
+[13:27:56] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t150-r3
+bottleneck down
+[13:28:20] E2 done
+bottleneck down

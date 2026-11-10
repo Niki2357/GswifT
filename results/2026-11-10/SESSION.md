@@ -50,6 +50,19 @@ repeats), `figs/`. Per-ACK `trace.csv` files are local only (gitignored, about 6
    1.73 Gb/s, MSwift 1.90, MSwift k=4 1.91. At q=0.5 Swift 0.07, MSwift 0.05,
    MSwift k=4 1.61, Cubic 1.81.
 
+## Follow-up runs (13:00-13:40)
+
+| Run | Where | What it showed |
+|---|---|---|
+| E6 stall diagnosis: swift-pcap, swift-nofrac, N=64, 20 rounds, every ACK traced, sender pcap | `e6_stall/` | All 31 in-burst send gaps last 202-210 ms: one packet in flight is dropped, Linux's tail-loss probe fires after rto_min (200 ms), its SACK exposes the hole, fast retransmit follows. No RTO counted. |
+| E3 with `RTO_MIN=5ms` (swift, nofrac, pcap, cubic; 3 repeats) and DCTCP with/without (3 repeats) | `e3_incast/*-rto5ms-*`, `e3_incast/dctcp-*` | Lower rto_min helps every algorithm; Cubic and DCTCP then beat Swift at N=64/128. DCTCP was fast (11 ms p99) even with the default RTO. |
+| E2 low targets 25/50/75/150 (3 repeats) | `e2_target/t{25,50,75,150}-*` | 0.1%, 26%, 38%, 67% |
+| E2 recheck 100/150/200 interleaved (3 repeats) | `e2_recheck/` | 43%, 73%, 91%: 100 µs had dropped from 92% two hours earlier |
+| E1 recheck 8 flows (3 repeats) | `e1_recheck/` | Swift 35-47%, Cubic 85-86%, DCTCP 95%: the drop is specific to Swift; host RTT tail up about 10 µs, everyone's RPC p99 up |
+
+No setting changed between 11:19 and 13:30 (sysctls, offloads, qdiscs, routes,
+iptables checked on both nodes).
+
 ## Problems hit and fixed
 
 - Ubuntu 20.04 offers only kernel 5.15: installed mainline 6.8 with a
@@ -64,12 +77,14 @@ repeats), `figs/`. Per-ACK `trace.csv` files are local only (gitignored, about 6
 - E4 `q_measured` used iptables skb counts (pre-segmentation, size depends on
   the CC). Now the netem/prio byte ratio; every variant gets the intended
   share. Slow-path packets come in short bursts (about 1.5-2.5 segments).
+- E6's first version stopped tcpdump with `sudo kill $PID`, which sudo ignores
+  from its own process group; now `sudo pkill -INT -x tcpdump`.
 - `pkill -f` matched its own command again once (setup stop). Same rule as
   last time: match on something the killing command does not contain.
 
 ## Open questions
 
-- What the 200 ms wait in fractional-window incast flows is (not RTO by
-  `TcpExtTCPTimeouts`; about 1,150 tail-loss probes per run).
-- Why 8-flow utilization differed so much between c6525 (Nov 9) and xl170.
+- Why Swift without loss still takes about 6x the line-rate bound at N=64.
+- Why DCTCP avoided RTOs at N=64 here but not on Nov 9.
+- What shifted the host-delay tail between 11:19 and 13:30.
 - Governor `ondemand` on both nodes; tune.sh could not set `performance`.
