@@ -112,10 +112,11 @@ def test_load_run_collects_meta(tmp_path: Path) -> None:
     assert run.iperf is None and run.trace is None
 
 
-def _run_with(tmp_path: Path, name: str, date: str, out: float) -> loaders.Run:
+def _run_with(tmp_path: Path, name: str, date: str, out: float,
+              extra: str = "") -> loaders.Run:
     d = tmp_path / name
     d.mkdir()
-    (d / "meta.txt").write_text(f"date={date}\n")
+    (d / "meta.txt").write_text(f"date={date}\n{extra}")
     (d / "nstat.txt").write_text(f"TcpOutSegs {out} 0\nTcpRetransSegs {out / 100} 0\n")
     return loaders.load_run(d)
 
@@ -129,3 +130,11 @@ def test_cumulative_to_delta(tmp_path: Path) -> None:
     assert fb.nstat["TcpOutSegs"] == 2000
     assert fb.nstat["TcpRetransSegs"] == 20
     assert fc.nstat["TcpOutSegs"] == 500
+
+
+def test_cumulative_to_delta_skips_runs_marked_delta(tmp_path: Path) -> None:
+    a = _run_with(tmp_path, "a", "2026-11-10T12:00", 1000, "nstat_mode=delta\n")
+    b = _run_with(tmp_path, "b", "2026-11-10T12:01", 3000, "nstat_mode=delta\n")
+    fa, fb = loaders.cumulative_to_delta([a, b])
+    assert fa.nstat["TcpOutSegs"] == 1000
+    assert fb.nstat["TcpOutSegs"] == 3000

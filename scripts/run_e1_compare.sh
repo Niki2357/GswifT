@@ -14,9 +14,11 @@ VARIANTS="${VARIANTS:-swift cubic dctcp vegas bbr}"
 FLOWS="${FLOWS:-1 8}"
 
 bn_up
-for n in $FLOWS; do
-    for v in $VARIANTS; do
-        run_bulk "$(run_dir e1_compare "$v-n$n")" "$v" "$n" "$DUR"
+for REP in $(rep_list); do
+    for n in $FLOWS; do
+        for v in $VARIANTS; do
+            run_bulk "$(run_dir e1_compare "$v-n$n$(rep_suffix "$REP")")" "$v" "$n" "$DUR"
+        done
     done
 done
 bn_down

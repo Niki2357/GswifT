@@ -138,9 +138,11 @@ def cumulative_to_delta(runs: list[Run]) -> list[Run]:
     minus the previous run's. A run is treated as absolute when its
     TcpOutSegs is at least the previous absolute run's; the first absolute
     run has no predecessor and gets empty counters. Runs saved as deltas
-    (smaller than the running total) are left unchanged.
+    (smaller than the running total) are left unchanged, as are runs whose
+    meta says nstat_mode=delta (every run after the fix).
     """
-    order = sorted(runs, key=lambda r: r.meta.get("date", ""))
+    order = sorted((r for r in runs if r.meta.get("nstat_mode") != "delta"),
+                   key=lambda r: r.meta.get("date", ""))
     prev: dict[str, float] | None = None
     fixed: dict[Path, Run] = {}
     for r in order:
@@ -154,4 +156,4 @@ def cumulative_to_delta(runs: list[Run]) -> list[Run]:
             fixed[r.path] = replace(r, nstat=delta)
         else:
             fixed[r.path] = r
-    return [fixed[r.path] for r in runs]
+    return [fixed.get(r.path, r) for r in runs]

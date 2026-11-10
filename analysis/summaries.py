@@ -79,6 +79,7 @@ def bulk_row(run: Run) -> dict[str, float | str]:
     gp = run.iperf.goodput_bps if run.iperf else np.nan
     row: dict[str, float | str] = {
         "run": run.name,
+        "rep": _f(run.meta, "rep", 1),
         "variant": run.meta.get("variant", "?"),
         "flows": _f(run.meta, "flows"),
         "goodput_gbps": gp / 1e9,
@@ -133,6 +134,8 @@ def summarize_e3(runs: list[Run]) -> pd.DataFrame:
     rows = []
     for r in runs:
         row: dict[str, float | str] = {
+            "run": r.name,
+            "rep": _f(r.meta, "rep", 1),
             "variant": r.meta.get("variant", "?"),
             "fanin": _f(r.meta, "flows"),
             "retrans_pct": metrics.retrans_pct(r.nstat),
@@ -168,6 +171,7 @@ def summarize_e4(runs: list[Run]) -> pd.DataFrame:
     for r in runs:
         row = bulk_row(r)
         row["q"] = _f(r.meta, "q")
+        row["reorder_tol"] = r.meta.get("reorder_tol", "default")
         row["q_measured"] = spray_fraction(r)
         row["reorder_events"] = sum(r.nstat.get(k, 0) for k in
                                     ("TcpExtTCPSACKReorder", "TcpExtTCPTSReorder",
@@ -175,4 +179,4 @@ def summarize_e4(runs: list[Run]) -> pd.DataFrame:
         row["fast_recoveries"] = r.nstat.get("TcpExtTCPSackRecovery", np.nan)
         rows.append(row)
     df = pd.DataFrame(rows)
-    return df.sort_values(["variant", "q"]) if len(df) else df
+    return df.sort_values(["reorder_tol", "variant", "q"]) if len(df) else df

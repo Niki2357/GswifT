@@ -223,6 +223,35 @@ static void test_pacing(void)
     CHECK(sw_pacing_Bps(&p, FP(0.5), 1000, 0) == 0);
 }
 
+static void test_pace_gap_cap(void)
+{
+    struct swift_params p = defaults();
+    // Off by default: cwnd 0.01 at 100 us is one packet per 10 ms = 100 kB/s.
+    CHECK(NEAR(sw_pacing_Bps(&p, FP(0.01), 1000, 100), 100000ULL, 12000));  // Q16 rounding
+    // Cap the gap at 1 ms: at least one 1000 B packet per ms = 1 MB/s.
+    p.max_pace_gap_us = 1000;
+    CHECK(NEAR(sw_pacing_Bps(&p, FP(0.01), 1000, 100), 1000000ULL, 100));
+    // A gap already below the cap is unchanged (cwnd 0.5 -> 200 us gap).
+    CHECK(NEAR(sw_pacing_Bps(&p, FP(0.5), 1000, 100), 5000000ULL, 100));
+    // The cap only applies below one packet; at cwnd >= 1 gain 0 stays unpaced.
+    CHECK(sw_pacing_Bps(&p, FP(4), 1000, 100) == 0);
+}
+
+static void test_pace_rtt_choice(void)
+{
+    struct swift_params p = defaults();
+    // Default: srtt for every window.
+    CHECK(sw_pace_rtt_us(&p, FP(0.5), 900, 40) == 900);
+    CHECK(sw_pace_rtt_us(&p, FP(4), 900, 40) == 900);
+    p.pace_rtt_min = 1;
+    // Below one packet: the minimum RTT, which queueing does not inflate.
+    CHECK(sw_pace_rtt_us(&p, FP(0.5), 900, 40) == 40);
+    // At or above one packet: still srtt.
+    CHECK(sw_pace_rtt_us(&p, FP(4), 900, 40) == 900);
+    // No min RTT yet (0): fall back to srtt.
+    CHECK(sw_pace_rtt_us(&p, FP(0.5), 900, 0) == 900);
+}
+
 static void test_median_window_size(void)
 {
     struct swift_params p = defaults();
@@ -317,6 +346,8 @@ int main(void)
     test_recovery();
     test_snd_cwnd();
     test_pacing();
+    test_pace_gap_cap();
+    test_pace_rtt_choice();
     test_median_window_size();
     test_median_filters_minority();
     test_median_reacts_to_majority();

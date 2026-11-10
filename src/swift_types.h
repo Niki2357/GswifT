@@ -48,6 +48,8 @@ struct swift_params {
     sw_u32 median_cap;      // MSwift: max median window H (0 or 1 = off)
     sw_u32 reorder_k;       // MSwift: consecutive over-target samples to decrease
     sw_u32 pace_gain_pct;   // pacing gain when cwnd >= 1 (0 = unpaced)
+    sw_u32 pace_rtt_min;    // below 1 packet, pace from min RTT, not srtt (0 = srtt)
+    sw_u32 max_pace_gap_us; // below 1 packet, longest gap between sends (0 = no cap)
     sw_u32 pad0;
     // Derived by sw_params_finalize(), not set directly.
     sw_u64 fs_inv_lo_fp;    // 1/sqrt(fs_max_cwnd)

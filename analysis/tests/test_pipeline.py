@@ -93,3 +93,31 @@ def test_full_pipeline(tmp_path: Path, monkeypatch) -> None:
     assert np.allclose(e4["q_measured"], 0.1)
     e1 = pd.read_csv(root / "tables" / "e1.csv")
     assert e1.loc[e1.variant == "swift", "frac_ack_pct"].iloc[0] == 10.0
+
+
+def test_repeats_are_collapsed(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "2026-11-10"
+    root.mkdir()
+    for rep in (1, 2, 3):
+        for v in ("swift", "cubic"):
+            _run(root, "e1_compare", f"{v}-n8-r{rep}", swift=v == "swift", variant=v,
+                 flows=8, rep=rep, nstat_mode="delta")
+        for tol in ("default", "64"):
+            d = _run(root, "e4_spray", f"swift-q0.1-{tol}-r{rep}", variant="swift", flows=8,
+                     q=0.1, rep=rep, reorder_tol=tol, nstat_mode="delta")
+            (d / "spray_counters.txt").write_text("")
+
+    monkeypatch.setattr(sys, "argv", ["analyze", str(root)])
+    analyze.main()
+
+    summary = (root / "summary.md").read_text()
+    assert "Median (min-max)" in summary
+    agg = pd.read_csv(root / "tables" / "e1_agg.csv")
+    assert set(agg["n"]) == {3}
+    assert {"util_pct", "util_pct_lo", "util_pct_hi"} <= set(agg.columns)
+    e4 = pd.read_csv(root / "tables" / "e4_agg.csv")
+    assert len(e4) == 2 and set(e4["n"]) == {3}
+    # Delta-mode nstat is kept as written, not differenced across runs.
+    e1 = pd.read_csv(root / "tables" / "e1.csv")
+    assert np.allclose(e1["retrans_pct"], 0.05)
+    assert (root / "figs" / "e4_spray.png").exists()

@@ -27,6 +27,14 @@ BN_RATE="${BN_RATE:-10gbit}"
 BN_LIMIT="${BN_LIMIT:-300}"          # packets
 BN_ECN_US="${BN_ECN_US:-50}"         # DCTCP marking threshold (sojourn time)
 
+# Repetitions: each experiment repeats its whole sweep REPS times, outermost,
+# so repeats of one configuration are spread over the session rather than
+# back to back. Run names get an -r<k> suffix when REPS > 1.
+REPS="${REPS:-1}"
+REP=1
+rep_list()   { seq 1 "$REPS"; }
+rep_suffix() { if (( REPS > 1 )); then echo "-r$1"; fi; }
+
 IPERF_PORT=5201
 PROBE_PORT=6001
 INCAST_PORT=6000
@@ -134,6 +142,8 @@ write_meta() {  # write_meta <dir> key=value ...
         echo "bn_rate=$BN_RATE"
         echo "bn_limit=$BN_LIMIT"
         echo "bn_ecn_us=$BN_ECN_US"
+        echo "rep=$REP"
+        echo "nstat_mode=delta"
         printf '%s\n' "$@"
     } > "$dir/meta.txt"
 }

@@ -261,6 +261,18 @@ static inline sw_u32 sw_snd_cwnd(sw_u64 cwnd_fp)
     return w > 0xFFFFFFFFULL ? 0xFFFFFFFFU : (sw_u32)w;
 }
 
+// RTT used to turn cwnd into a pacing rate. srtt includes queueing, so during
+// an incast it can be many times the base RTT and stretch sub-packet gaps far
+// beyond what the window intends. With pace_rtt_min, sub-packet windows pace
+// from the minimum RTT instead.
+static inline sw_u64 sw_pace_rtt_us(const struct swift_params *p, sw_u64 cwnd_fp,
+                                    sw_u64 srtt_us, sw_u64 min_rtt_us)
+{
+    if (p->pace_rtt_min && cwnd_fp < SW_FP_ONE && min_rtt_us)
+        return min_rtt_us;
+    return srtt_us;
+}
+
 // Pacing rate in bytes/s. 0 means "do not pace".
 // Below one packet: one MSS every srtt/cwnd, as in Swift.
 // At or above one packet: gain x cwnd x mss / srtt, or unpaced if gain is 0.
@@ -273,8 +285,15 @@ static inline sw_u64 sw_pacing_Bps(const struct swift_params *p, sw_u64 cwnd_fp,
     if (bytes_per_rtt == 0)
         bytes_per_rtt = 1;
     sw_u64 rate = bytes_per_rtt * SW_US_PER_S / srtt_us;
-    if (cwnd_fp < SW_FP_ONE)
+    if (cwnd_fp < SW_FP_ONE) {
+        // Optional floor: at least one MSS every max_pace_gap_us.
+        if (p->max_pace_gap_us) {
+            sw_u64 floor = (sw_u64)mss * SW_US_PER_S / p->max_pace_gap_us;
+            if (rate < floor)
+                rate = floor;
+        }
         return rate;
+    }
     if (p->pace_gain_pct == 0)
         return 0;
     return rate * p->pace_gain_pct / 100;

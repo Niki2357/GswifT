@@ -88,3 +88,10 @@ priority is repeats. About 1-1.5 hours of node time, in this order:
    Needs a module change and unit tests first.
 
 Skip E0 (clean). Leave time to copy results off before expiry.
+
+All three are implemented: `scripts/run_session2.sh` runs the whole plan
+(`REPS` env, default 5; E4 at 3 repeats, with and without `REORDER_TOL=64`,
+on a 2 Gb/s bottleneck). The pacing fix is two new swiftctl flags,
+`--pace-min-rtt` and `--max-pace-gap US`, exposed as variants `swift-pmin`
+and `swift-pcap`. With repeats, `analysis.analyze` adds `tables/*_agg.csv`
+and median (min-max) tables, and the figures draw min-max bars.

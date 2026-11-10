@@ -11,6 +11,8 @@ variant() {
         swift)        echo "swift|" ;;
         swift-nofrac) echo "swift|--min-cwnd 1" ;;
         swift-fs)     echo "swift|--fs-range 200" ;;
+        swift-pmin)   echo "swift|--pace-min-rtt" ;;
+        swift-pcap)   echo "swift|--pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
         mswift)       echo "swift|--median-cap 16" ;;
         mswift-k4)    echo "swift|--median-cap 16 --reorder-k 4" ;;
         cubic|dctcp|vegas|bbr|reno) echo "$1|" ;;

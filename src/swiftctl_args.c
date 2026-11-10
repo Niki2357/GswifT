@@ -15,7 +15,7 @@
 enum {
     O_BASE = 1000, O_HOPSCALE, O_HOPS, O_HOP, O_FSRANGE, O_FSMIN, O_FSMAX,
     O_AI, O_BETA, O_MDF, O_MINCWND, O_MAXCWND, O_INITCWND, O_RETX,
-    O_MEDIAN, O_REORDER, O_PACE, O_TRACE_EVERY, O_NO_EVENTS, O_OUT,
+    O_MEDIAN, O_REORDER, O_PACE, O_PACE_MINRTT, O_PACE_GAP, O_TRACE_EVERY, O_NO_EVENTS, O_OUT,
     O_STATS, O_DURATION, O_VERBOSE, O_HELP,
 };
 
@@ -37,6 +37,8 @@ static const struct option long_opts[] = {
     {"median-cap", required_argument, 0, O_MEDIAN},
     {"reorder-k", required_argument, 0, O_REORDER},
     {"pace-gain", required_argument, 0, O_PACE},
+    {"pace-min-rtt", no_argument, 0, O_PACE_MINRTT},
+    {"max-pace-gap", required_argument, 0, O_PACE_GAP},
     {"trace-every", required_argument, 0, O_TRACE_EVERY},
     {"no-trace-events", no_argument, 0, O_NO_EVENTS},
     {"trace", required_argument, 0, O_OUT},
@@ -67,6 +69,8 @@ static void usage(FILE *out)
         "  --min-cwnd X [0.01]  --max-cwnd X [10000]  --init-cwnd X [10]\n"
         "  --retx-reset N      RTOs before cwnd -> min     [3]\n"
         "  --pace-gain PCT     pacing gain at cwnd >= 1, 0 = unpaced [0]\n"
+        "  --pace-min-rtt      below 1 packet, pace from min RTT, not srtt\n"
+        "  --max-pace-gap US   below 1 packet, longest gap between sends [0 = none]\n"
         "MSwift:\n"
         "  --median-cap N      median over last min(cwnd/2, N) samples, <=16 [0 = off]\n"
         "  --reorder-k N       decrease after N consecutive over-target [1]\n"
@@ -190,6 +194,8 @@ static int apply_opt(int c, const char *arg, struct swiftctl_opts *o)
     case O_MEDIAN:    if (parse_num(arg, 0, SW_RING_SIZE, &v)) return -1; p->median_cap = v; break;
     case O_REORDER:   if (parse_num(arg, 1, 255, &v)) return -1; p->reorder_k = v; break;
     case O_PACE:      if (parse_num(arg, 0, 1000, &v)) return -1; p->pace_gain_pct = v; break;
+    case O_PACE_MINRTT: p->pace_rtt_min = 1; break;
+    case O_PACE_GAP:  if (parse_num(arg, 0, 1e7, &v)) return -1; p->max_pace_gap_us = v; break;
     case O_TRACE_EVERY: if (parse_num(arg, 0, 1e9, &v)) return -1; o->cfg.trace_every = v; break;
     case O_NO_EVENTS: o->cfg.trace_events = 0; break;
     case O_OUT:       o->trace_path = arg; break;
@@ -228,10 +234,12 @@ void swiftctl_print_cfg(const struct swiftctl_opts *o, FILE *out)
             "base_target_us=%u hop_scale_us=%u default_hops=%u fs_range_us=%u "
             "fs_min_cwnd=%.3f fs_max_cwnd=%.1f ai=%.3f beta=%.3f max_mdf=%.3f "
             "min_cwnd=%.4f max_cwnd=%.0f init_cwnd=%.2f retx_reset=%u "
-            "median_cap=%u reorder_k=%u pace_gain_pct=%u trace_every=%u\n",
+            "median_cap=%u reorder_k=%u pace_gain_pct=%u pace_rtt_min=%u max_pace_gap_us=%u "
+            "trace_every=%u\n",
             p->base_target_us, p->hop_scale_us, p->default_hops, p->fs_range_us,
             UNFP(p->fs_min_cwnd_fp), UNFP(p->fs_max_cwnd_fp), UNFP(p->ai_fp),
             UNFP(p->beta_fp), UNFP(p->max_mdf_fp), UNFP(p->min_cwnd_fp),
             UNFP(p->max_cwnd_fp), UNFP(p->init_cwnd_fp), p->retx_reset,
-            p->median_cap, p->reorder_k, p->pace_gain_pct, o->cfg.trace_every);
+            p->median_cap, p->reorder_k, p->pace_gain_pct, p->pace_rtt_min,
+            p->max_pace_gap_us, o->cfg.trace_every);
 }

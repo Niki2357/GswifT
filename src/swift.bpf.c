@@ -87,7 +87,10 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     __u64 srtt = srtt_of(tp);
     if (srtt == 0)
         srtt = st->delay_us;
-    __u64 rate = sw_pacing_Bps(p, st->cwnd_fp, tp->mss_cache, srtt);
+    // rtt_min is a windowed min filter; ~0U until the first sample.
+    __u32 min_rtt = tp->rtt_min.s[0].v;
+    __u64 rtt = sw_pace_rtt_us(p, st->cwnd_fp, srtt, min_rtt == ~0U ? 0 : min_rtt);
+    __u64 rate = sw_pacing_Bps(p, st->cwnd_fp, tp->mss_cache, rtt);
     __u64 max = sk->sk_max_pacing_rate;
 
 #if SWIFT_SET_PACING_STATUS

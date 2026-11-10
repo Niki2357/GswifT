@@ -46,6 +46,23 @@ def _plain_log(ax: plt.Axes, axis: str = "x") -> None:
     a.set_minor_formatter(NullFormatter())
 
 
+def _err(sub: pd.DataFrame, col: str) -> np.ndarray | None:
+    """Asymmetric min-max error bars for a collapsed table, else None."""
+    lo, hi = f"{col}_lo", f"{col}_hi"
+    if lo not in sub or hi not in sub:
+        return None
+    v = sub[col].to_numpy(dtype=float)
+    return np.vstack([v - sub[lo].to_numpy(dtype=float), sub[hi].to_numpy(dtype=float) - v])
+
+
+def _line(ax: plt.Axes, sub: pd.DataFrame, x: str, y: str, scale: float = 1.0,
+          **kw: object) -> None:
+    """Line with markers, plus min-max bars when the table has repeats."""
+    e = _err(sub, y)
+    ax.errorbar(sub[x], sub[y] / scale, yerr=None if e is None else e / scale,
+                marker=kw.pop("marker", "o"), capsize=2.5, elinewidth=1, **kw)
+
+
 def _save(fig: plt.Figure, out: Path) -> Path:
     fig.tight_layout()
     fig.savefig(out)
@@ -84,7 +101,12 @@ def e1_tradeoff(df: pd.DataFrame, out: Path) -> Path | None:
     fig, axes = plt.subplots(1, len(flows), figsize=(4.2 * len(flows), 3.2), squeeze=False)
     for ax, n in zip(axes[0], flows):
         sub = df[df["flows"] == n]
-        for _, r in sub.iterrows():
+        xe, ye = _err(sub, "rpc_us_p99"), _err(sub, "goodput_gbps")
+        for i, (_, r) in enumerate(sub.iterrows()):
+            if xe is not None and ye is not None:
+                ax.errorbar(r["rpc_us_p99"], r["goodput_gbps"], xerr=xe[:, i:i + 1],
+                            yerr=ye[:, i:i + 1], color=_color(r["variant"]), capsize=2.5,
+                            elinewidth=1, zorder=2)
             ax.scatter(r["rpc_us_p99"], r["goodput_gbps"], s=40, color=_color(r["variant"]),
                        edgecolor="white", linewidth=1.5, zorder=3)
             ax.annotate(r["variant"], (r["rpc_us_p99"], r["goodput_gbps"]),
@@ -106,7 +128,8 @@ def e1_queue_bars(df: pd.DataFrame, out: Path) -> Path | None:
         sub = df[df["flows"] == n].sort_values("queue_us_p99")
         y = np.arange(len(sub))
         ax.barh(y, sub["queue_us_p99"], color=[_color(v) for v in sub["variant"]],
-                height=0.6, edgecolor="white", linewidth=2)
+                height=0.6, edgecolor="white", linewidth=2, xerr=_err(sub, "queue_us_p99"),
+                error_kw={"ecolor": INK, "capsize": 2.5, "elinewidth": 1})
         ax.set_yticks(y, sub["variant"])
         ax.set_xlabel("bottleneck queuing delay, p99 (µs)")
         ax.set_title(f"{int(n)} flow{'s' if n > 1 else ''}")
@@ -145,13 +168,15 @@ def e2_target_sweep(df: pd.DataFrame, out: Path) -> Path | None:
         return None
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(5, 4.6), sharex=True)
     x = df["base_target_us"]
-    a1.plot(x, df["util_pct"], marker="o", color=_color("swift"))
+    _line(a1, df, "base_target_us", "util_pct", color=_color("swift"))
     a1.set_ylabel("bottleneck utilization (%)")
     a1.set_ylim(0, 105)
     a1.set_title("Swift base-target sweep")
-    a2.plot(x, df["rtt_us_p50"], marker="o", color=_color("swift"), label="module RTT p50")
-    a2.plot(x, df["queue_us_p50"], marker="s", color="#5a9be3", label="queue delay p50")
-    a2.plot(x, df["queue_us_p99"], marker="^", color="#1d5fae", label="queue delay p99")
+    _line(a2, df, "base_target_us", "rtt_us_p50", color=_color("swift"), label="module RTT p50")
+    _line(a2, df, "base_target_us", "queue_us_p50", marker="s", color="#5a9be3",
+          label="queue delay p50")
+    _line(a2, df, "base_target_us", "queue_us_p99", marker="^", color="#1d5fae",
+          label="queue delay p99")
     a2.plot(x, x, color=MUTED, linestyle=":", linewidth=1, label="y = target")
     a2.set_xlabel("base target (µs)")
     a2.set_ylabel("µs")
@@ -165,8 +190,8 @@ def e3_incast(df: pd.DataFrame, out: Path) -> Path | None:
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.4, 3.2))
     for v, sub in df.groupby("variant"):
         sub = sub.sort_values("fanin")
-        a1.plot(sub["fanin"], sub["qct_us_p99"] / 1e3, marker="o", color=_color(v), label=v)
-        a2.plot(sub["fanin"], sub["retrans_pct"], marker="o", color=_color(v), label=v)
+        _line(a1, sub, "fanin", "qct_us_p99", scale=1e3, color=_color(v), label=v)
+        _line(a2, sub, "fanin", "retrans_pct", color=_color(v), label=v)
     ticks = sorted(df["fanin"].dropna().unique())
     for a in (a1, a2):
         a.set_xscale("log", base=2)
@@ -181,15 +206,20 @@ def e3_incast(df: pd.DataFrame, out: Path) -> Path | None:
 
 
 def e4_spray(df: pd.DataFrame, out: Path) -> Path | None:
+    """Goodput vs q; one panel per loss-recovery setting (reorder_tol)."""
     if df.empty:
         return None
-    fig, ax = plt.subplots(figsize=(5, 3.2))
-    for v, sub in df.groupby("variant"):
-        sub = sub.sort_values("q")
-        ax.plot(sub["q"], sub["goodput_gbps"], marker="o", color=_color(v), label=v)
-    ax.set_xlabel("fraction of packets on the slow path, q")
-    ax.set_ylabel("goodput (Gb/s)")
-    ax.set_ylim(bottom=0)
-    ax.set_title("Spraying with one slow path")
-    ax.legend()
+    tols = sorted(df["reorder_tol"].unique()) if "reorder_tol" in df else [None]
+    fig, axes = plt.subplots(1, len(tols), figsize=(5 * len(tols), 3.2), squeeze=False,
+                             sharey=True)
+    for ax, tol in zip(axes[0], tols):
+        part = df if tol is None else df[df["reorder_tol"] == tol]
+        for v, sub in part.groupby("variant"):
+            _line(ax, sub.sort_values("q"), "q", "goodput_gbps", color=_color(v), label=v)
+        ax.set_xlabel("fraction of packets on the slow path, q")
+        ax.set_ylim(bottom=0)
+        ax.set_title("Linux default loss recovery" if tol in (None, "default")
+                     else f"reordering tolerant (dupthresh {tol}, RACK off)")
+        ax.legend()
+    axes[0][0].set_ylabel("goodput (Gb/s)")
     return _save(fig, out)

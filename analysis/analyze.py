@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from analysis import figures, summaries
+from analysis import aggregate, figures, summaries
 from analysis.loaders import cumulative_to_delta, load_experiment
 
 COLS = {
@@ -26,9 +26,40 @@ COLS = {
            "decr_per_s", "retrans_pct"],
     "e3": ["variant", "fanin", "qct_us_p50", "qct_us_p99", "fct_us_p99", "retrans_pct",
            "timeouts", "drops", "queue_us_p99", "frac_ack_pct"],
-    "e4": ["variant", "q", "q_measured", "goodput_gbps", "util_pct", "retrans_pct",
+    "e4": ["variant", "reorder_tol", "q", "q_measured", "goodput_gbps", "util_pct", "retrans_pct",
            "reorder_events", "fast_recoveries", "decr_per_s", "rtt_us_p50"],
 }
+
+
+# Configuration columns (repeats share them) and the metrics whose spread
+# across repeats is reported.
+KEYS = {
+    "e1": ["flows", "variant"],
+    "e2": ["base_target_us"],
+    "e3": ["fanin", "variant"],
+    "e4": ["reorder_tol", "variant", "q"],
+}
+SPREAD = {
+    "e1": ["goodput_gbps", "util_pct", "queue_us_p99", "rpc_us_p99", "retrans_pct",
+           "rtt_us_p50", "decr_per_s", "jain"],
+    "e2": ["util_pct", "goodput_gbps", "rtt_us_p50", "rtt_us_p99", "queue_us_p50",
+           "queue_us_p99", "rpc_us_p99", "decr_per_s"],
+    "e3": ["qct_us_p50", "qct_us_p99", "retrans_pct", "timeouts", "drops", "frac_ack_pct"],
+    "e4": ["q_measured", "goodput_gbps", "util_pct", "retrans_pct", "fast_recoveries",
+           "decr_per_s", "rtt_us_p50"],
+}
+
+
+def _md_spread(df: pd.DataFrame, keys: list[str], metrics: list[str]) -> str:
+    """Markdown table of collapsed repeats: 'median (min-max)' per cell."""
+    present = [m for m in metrics if m in df.columns]
+    head = keys + ["n"] + present
+    lines = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
+    for _, row in df.iterrows():
+        cells = [_cell(row[k]) for k in keys] + [str(int(row["n"]))]
+        cells += [aggregate.range_cell(row, m) for m in present]
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines)
 
 
 def _cell(v: object) -> str:
@@ -71,9 +102,21 @@ def main() -> None:
         if p.exists():
             sections.append(f"## Session {f}\n\n```\n{p.read_text().strip()}\n```\n")
 
-    def emit(key: str, title: str, df: pd.DataFrame) -> None:
+    def emit(key: str, title: str, df: pd.DataFrame) -> pd.DataFrame:
+        """Write the per-run table; with repeats, also the collapsed one.
+        Returns what the figures should plot (collapsed when repeated)."""
         df.to_csv(tables / f"{key}.csv", index=False)
+        keys = KEYS.get(key)
+        if keys and aggregate.has_repeats(df, keys):
+            agg = aggregate.collapse(df, keys, SPREAD[key])
+            agg.to_csv(tables / f"{key}_agg.csv", index=False)
+            sections.append(f"## {title}\n\nMedian (min-max) over n repeats.\n\n"
+                            f"{_md_spread(agg, keys, SPREAD[key])}\n\n"
+                            f"<details><summary>Every run</summary>\n\n"
+                            f"{_md(df, ['run', 'rep'] + COLS[key])}\n\n</details>\n")
+            return agg
         sections.append(f"## {title}\n\n{_md(df, COLS[key])}\n")
+        return df
 
     exps = {k: load_experiment(root / k) for k in
             ("smoke", "e0_noise", "e1_compare", "e2_target", "e3_incast", "e4_spray", "e5_diag")}
@@ -88,30 +131,28 @@ def main() -> None:
 
     e1 = exps["e1_compare"]
     if e1:
-        df = summaries.summarize_bulk(e1)
-        emit("e1", "E1: algorithm comparison at the bottleneck", df)
+        df = emit("e1", "E1: algorithm comparison at the bottleneck",
+                  summaries.summarize_bulk(e1))
         figures.e1_tradeoff(df, figs / "e1_tradeoff.png")
         figures.e1_queue_bars(df, figs / "e1_queue.png")
         for r in e1:
-            if r.meta.get("variant") == "swift":
+            if r.meta.get("variant") == "swift" and r.meta.get("rep", "1") == "1":
                 figures.swift_timeseries(r, figs / f"e1_trace_{r.name}.png")
 
     e2 = exps["e2_target"]
     if e2:
-        df = summaries.summarize_e2(e2, unloaded_floor_us(root))
-        emit("e2", "E2: base-target sweep (8 flows)", df)
+        df = emit("e2", "E2: base-target sweep (8 flows)",
+                  summaries.summarize_e2(e2, unloaded_floor_us(root)))
         figures.e2_target_sweep(df, figs / "e2_target.png")
 
     e3 = exps["e3_incast"]
     if e3:
-        df = summaries.summarize_e3(e3)
-        emit("e3", "E3: incast fan-in sweep", df)
+        df = emit("e3", "E3: incast fan-in sweep", summaries.summarize_e3(e3))
         figures.e3_incast(df, figs / "e3_incast.png")
 
     e4 = exps["e4_spray"]
     if e4:
-        df = summaries.summarize_e4(e4)
-        emit("e4", "E4: spraying with one slow path", df)
+        df = emit("e4", "E4: spraying with one slow path", summaries.summarize_e4(e4))
         figures.e4_spray(df, figs / "e4_spray.png")
 
     (root / "summary.md").write_text("\n".join(sections))
