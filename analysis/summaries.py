@@ -154,11 +154,21 @@ def summarize_e3(runs: list[Run]) -> pd.DataFrame:
 
 
 def spray_fraction(run: Run) -> float:
-    """Measured share of packets sent on the slow path (iptables vs qdisc)."""
+    """Measured share of bytes sent on the slow path.
+
+    Uses the netem (slow) vs prio (all) qdisc byte counters. The iptables
+    MARK count is not comparable to wire packets: it counts skbs before
+    segmentation, whose size depends on the congestion control. Falls back to
+    the old packet ratio for counter files without a netem line.
+    """
     p = run.path / "spray_counters.txt"
     if not p.exists():
         return np.nan
     txt = p.read_text()
+    total = re.search(r"qdisc prio 1: .*?\n Sent (\d+) bytes", txt, re.S)
+    slow = re.search(r"qdisc netem \S+ parent 1:2.*?\n Sent (\d+) bytes", txt, re.S)
+    if total and slow and int(total.group(1)):
+        return int(slow.group(1)) / int(total.group(1))
     m = re.search(r"^\s*(\d+)\s+\d+\s+MARK", txt, re.M)
     s = re.search(r"qdisc prio 1: .*?\n Sent \d+ bytes (\d+) pkt", txt, re.S)
     if not m or not s or int(s.group(1)) == 0:

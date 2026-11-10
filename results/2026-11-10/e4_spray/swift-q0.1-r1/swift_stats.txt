@@ -1,0 +1,13 @@
+base_target_us=100 hop_scale_us=0 default_hops=1 fs_range_us=0 fs_min_cwnd=0.100 fs_max_cwnd=100.0 ai=1.000 beta=0.800 max_mdf=0.500 min_cwnd=0.0100 max_cwnd=10000 init_cwnd=10.00 retx_reset=3 median_cap=0 reorder_k=1 pace_gain_pct=0 pace_rtt_min=0 max_pace_gap_us=0 trace_every=4
+n_init=8
+n_acks=1772757
+n_samples=1666687
+n_increase=831259
+n_decrease=293098
+n_hold=542330
+n_rto=0
+n_recovery=123149
+n_frac_acks=22885
+n_ev_dropped=0
+n_no_cfg=0
+trace_records=786020

@@ -138,3 +138,22 @@ def test_cumulative_to_delta_skips_runs_marked_delta(tmp_path: Path) -> None:
     fa, fb = loaders.cumulative_to_delta([a, b])
     assert fa.nstat["TcpOutSegs"] == 1000
     assert fb.nstat["TcpOutSegs"] == 3000
+
+
+def test_spray_fraction_uses_wire_bytes(tmp_path: Path) -> None:
+    """iptables counts pre-segmentation skbs; the netem/prio byte ratio is the
+    wire share. Counters copied from a real run (2026-11-10, mswift q=0.25)."""
+    from analysis import summaries
+    d = tmp_path / "run"
+    d.mkdir()
+    (d / "meta.txt").write_text("variant=mswift\n")
+    (d / "spray_counters.txt").write_text(
+        "  251322 903740946 MARK       tcp  --  *  ens1f1np1  0.0.0.0/0  0.0.0.0/0\n"
+        "qdisc prio 1: root refcnt 161 bands 2 priomap 0 0\n"
+        " Sent 3739537210 bytes 2545914 pkt (dropped 0, overlimits 0 requeues 0) \n"
+        "qdisc fq 10: parent 1:1 limit 10000p\n"
+        " Sent 2808267550 bytes 1930801 pkt (dropped 0, overlimits 0 requeues 0) \n"
+        "qdisc netem 20: parent 1:2 limit 100000 delay 299us\n"
+        " Sent 931269660 bytes 615113 pkt (dropped 0, overlimits 0 requeues 0) \n")
+    run = loaders.load_run(d)
+    assert summaries.spray_fraction(run) == pytest.approx(0.249, abs=0.001)

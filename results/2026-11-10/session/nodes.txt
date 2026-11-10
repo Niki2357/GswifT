@@ -1,0 +1,31 @@
+# sender
+hostname=hp090.utah.cloudlab.us
+node_type=xl170
+kernel=6.8.0-060800-generic
+os=Ubuntu 20.04 LTS
+cpu=Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
+iface=ens1f1np1
+nic=driver: mlx5_core firmware-version: 14.21.2800 (HP_2420110034) 
+pci=Ethernet controller: Mellanox Technologies MT27710 Family [ConnectX-4 Lx]
+speed=25000Mb/s mtu=1500
+governor=ondemand
+coalesce=Adaptive RX: off  TX: off rx-usecs: 3 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5
+
+# receiver
+hostname=hp093.utah.cloudlab.us
+node_type=xl170
+kernel=6.8.0-060800-generic
+os=Ubuntu 20.04 LTS
+cpu=Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
+iface=ens1f1np1
+nic=driver: mlx5_core firmware-version: 14.32.1908 (HP_2420110034) 
+pci=Ethernet controller: Mellanox Technologies MT27710 Family [ConnectX-4 Lx]
+speed=25000Mb/s mtu=1500
+governor=ondemand
+coalesce=Adaptive RX: off  TX: off rx-usecs: 3 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5

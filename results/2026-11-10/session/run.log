@@ -1,0 +1,322 @@
+# sender
+hostname=hp090.utah.cloudlab.us
+node_type=xl170
+kernel=6.8.0-060800-generic
+os=Ubuntu 20.04 LTS
+cpu=Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
+iface=ens1f1np1
+nic=driver: mlx5_core firmware-version: 14.21.2800 (HP_2420110034) 
+pci=Ethernet controller: Mellanox Technologies MT27710 Family [ConnectX-4 Lx]
+speed=25000Mb/s mtu=1500
+governor=ondemand
+coalesce=Adaptive RX: off  TX: off rx-usecs: 3 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5
+
+# receiver
+hostname=hp093.utah.cloudlab.us
+node_type=xl170
+kernel=6.8.0-060800-generic
+os=Ubuntu 20.04 LTS
+cpu=Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz
+iface=ens1f1np1
+nic=driver: mlx5_core firmware-version: 14.32.1908 (HP_2420110034) 
+pci=Ethernet controller: Mellanox Technologies MT27710 Family [ConnectX-4 Lx]
+speed=25000Mb/s mtu=1500
+governor=ondemand
+coalesce=Adaptive RX: off  TX: off rx-usecs: 3 
+hwts_rx_all=yes
+cc_available=reno cubic dctcp bbr vegas
+libbpf=1.4.5
+[11:04:17] unloaded RTT baselines (no bottleneck)
+bottleneck down
+tcp_rr_64B_us n=20000 p1=35.3 p50=38.5 p99=53.9 p99.9=68.5
+2000 packets transmitted, 2000 received, 0% packet loss, time 1999ms
+rtt min/avg/max/mdev = 0.034/0.078/0.380/0.015 ms
+[11:04:22] session info in /users/niki2357/gswift_results/2026-11-10/session
+=== e0 (11:04:22)
+bottleneck down
+[11:04:24] bulk: swift flows=1 15s -> /users/niki2357/gswift_results/2026-11-10/e0_noise/load-1G
+[11:04:48] bulk: swift flows=1 15s -> /users/niki2357/gswift_results/2026-11-10/e0_noise/load-5G
+[11:05:09] bulk: swift flows=1 15s -> /users/niki2357/gswift_results/2026-11-10/e0_noise/load-max
+[11:05:31] E0 done
+bottleneck down
+=== e1 (11:05:32)
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[11:05:34] bulk: swift flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n1-r1
+[11:06:03] bulk: cubic flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n1-r1
+[11:06:30] bulk: dctcp flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n1-r1
+[11:06:58] bulk: swift flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n8-r1
+[11:07:26] bulk: cubic flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n8-r1
+[11:07:54] bulk: dctcp flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n8-r1
+[11:08:21] bulk: swift flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n1-r2
+[11:08:48] bulk: cubic flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n1-r2
+[11:09:16] bulk: dctcp flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n1-r2
+[11:09:42] bulk: swift flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n8-r2
+[11:10:10] bulk: cubic flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n8-r2
+[11:10:37] bulk: dctcp flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n8-r2
+[11:11:04] bulk: swift flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n1-r3
+[11:11:30] bulk: cubic flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n1-r3
+[11:11:58] bulk: dctcp flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n1-r3
+[11:12:25] bulk: swift flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n8-r3
+[11:12:53] bulk: cubic flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n8-r3
+[11:13:20] bulk: dctcp flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n8-r3
+[11:13:48] bulk: swift flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n1-r4
+[11:14:16] bulk: cubic flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n1-r4
+[11:14:44] bulk: dctcp flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n1-r4
+[11:15:12] bulk: swift flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n8-r4
+[11:15:39] bulk: cubic flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n8-r4
+[11:16:05] bulk: dctcp flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n8-r4
+[11:16:32] bulk: swift flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n1-r5
+[11:16:59] bulk: cubic flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n1-r5
+[11:17:25] bulk: dctcp flows=1 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n1-r5
+[11:17:53] bulk: swift flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/swift-n8-r5
+[11:18:20] bulk: cubic flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/cubic-n8-r5
+[11:18:49] bulk: dctcp flows=8 20s -> /users/niki2357/gswift_results/2026-11-10/e1_compare/dctcp-n8-r5
+bottleneck down
+[11:19:17] E1 done
+bottleneck down
+=== e2 (11:19:18)
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[11:19:19] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t100-r1
+[11:19:44] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t200-r1
+[11:20:06] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t300-r1
+[11:20:28] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t100-r2
+[11:20:50] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t200-r2
+[11:21:14] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t300-r2
+[11:21:40] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t100-r3
+[11:22:02] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t200-r3
+[11:22:25] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t300-r3
+[11:22:48] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t100-r4
+[11:23:11] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t200-r4
+[11:23:33] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t300-r4
+[11:23:56] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t100-r5
+[11:24:18] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t200-r5
+[11:24:40] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e2_target/t300-r5
+bottleneck down
+[11:25:03] E2 done
+bottleneck down
+=== e3 (11:25:04)
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 10gbit, buffer 100 pkts, CE 50us
+[11:25:06] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n64-r1
+[11:25:48] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n64-r1
+[11:25:55] incast: swift-pmin N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n64-r1
+[11:26:20] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n64-r1
+[11:26:45] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n64-r1
+[11:27:05] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n128-r1
+[11:28:06] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n128-r1
+[11:28:34] incast: swift-pmin N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n128-r1
+[11:29:03] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n128-r1
+[11:29:33] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n128-r1
+[11:30:02] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n64-r2
+[11:30:53] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n64-r2
+[11:30:59] incast: swift-pmin N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n64-r2
+[11:31:26] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n64-r2
+[11:31:51] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n64-r2
+[11:32:11] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n128-r2
+[11:33:16] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n128-r2
+[11:33:44] incast: swift-pmin N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n128-r2
+[11:34:15] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n128-r2
+[11:34:43] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n128-r2
+[11:35:11] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n64-r3
+[11:36:25] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n64-r3
+[11:36:34] incast: swift-pmin N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n64-r3
+[11:36:59] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n64-r3
+[11:37:24] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n64-r3
+[11:37:44] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n128-r3
+[11:38:54] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n128-r3
+[11:39:23] incast: swift-pmin N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n128-r3
+[11:39:53] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n128-r3
+[11:40:22] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n128-r3
+[11:40:50] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n64-r4
+[11:41:54] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n64-r4
+[11:42:01] incast: swift-pmin N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n64-r4
+[11:42:27] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n64-r4
+[11:42:53] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n64-r4
+[11:43:13] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n128-r4
+[11:44:19] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n128-r4
+[11:44:48] incast: swift-pmin N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n128-r4
+[11:45:19] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n128-r4
+[11:45:48] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n128-r4
+[11:46:17] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n64-r5
+[11:47:25] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n64-r5
+[11:47:32] incast: swift-pmin N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n64-r5
+[11:47:57] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n64-r5
+[11:48:23] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n64-r5
+[11:48:42] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-n128-r5
+[11:49:53] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-nofrac-n128-r5
+[11:50:21] incast: swift-pmin N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pmin-n128-r5
+[11:50:51] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/swift-pcap-n128-r5
+[11:51:20] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-10/e3_incast/cubic-n128-r5
+bottleneck down
+[11:51:49] E3 done
+bottleneck down
+=== e4 (11:51:50)
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 2gbit, buffer 300 pkts, CE 50us
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[11:51:52] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-r1
+[11:52:16] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-r1
+[11:52:37] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-r1
+[11:53:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-r1
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[11:53:23] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-r1
+[11:53:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-r1
+[11:54:08] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-r1
+[11:54:30] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-r1
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[11:54:52] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-r1
+[11:55:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-r1
+[11:55:37] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-r1
+[11:56:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-r1
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[11:56:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-r1
+[11:56:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-r1
+[11:57:08] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-r1
+[11:57:29] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-r1
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[11:57:51] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-r1
+[11:58:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-r1
+[11:58:38] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-r1
+[11:59:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-r1
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[11:59:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-r2
+[11:59:44] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-r2
+[12:00:08] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-r2
+[12:00:30] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-r2
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[12:00:53] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-r2
+[12:01:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-r2
+[12:01:38] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-r2
+[12:02:01] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-r2
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[12:02:23] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-r2
+[12:02:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-r2
+[12:03:07] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-r2
+[12:03:30] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-r2
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[12:03:52] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-r2
+[12:04:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-r2
+[12:04:37] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-r2
+[12:05:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-r2
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[12:05:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-r2
+[12:05:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-r2
+[12:06:07] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-r2
+[12:06:30] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-r2
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[12:06:52] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-r3
+[12:07:14] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-r3
+[12:07:37] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-r3
+[12:07:59] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-r3
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[12:08:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-r3
+[12:08:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-r3
+[12:09:07] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-r3
+[12:09:29] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-r3
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[12:09:51] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-r3
+[12:10:14] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-r3
+[12:10:36] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-r3
+[12:10:58] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-r3
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[12:11:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-r3
+[12:11:44] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-r3
+[12:12:06] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-r3
+[12:12:28] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-r3
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[12:12:52] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-r3
+[12:13:14] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-r3
+[12:13:36] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-r3
+[12:13:59] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-r3
+bottleneck down
+[12:14:21] E4 done
+bottleneck down
+=== e4-reorder (12:14:22)
+[12:14:23] reordering tolerance on: was net.ipv4.tcp_recovery=1 net.ipv4.tcp_reordering=3 net.ipv4.tcp_max_reordering=300 
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: ens1f1np1 ingress -> ifb0, rate 2gbit, buffer 300 pkts, CE 50us
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[12:14:24] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-ro64-r1
+[12:14:47] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-ro64-r1
+[12:15:10] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-ro64-r1
+[12:15:33] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-ro64-r1
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[12:15:55] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-ro64-r1
+[12:16:17] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-ro64-r1
+[12:16:39] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-ro64-r1
+[12:17:02] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-ro64-r1
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[12:17:24] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-ro64-r1
+[12:17:46] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-ro64-r1
+[12:18:09] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-ro64-r1
+[12:18:31] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-ro64-r1
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[12:18:53] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-ro64-r1
+[12:19:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-ro64-r1
+[12:19:38] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-ro64-r1
+[12:20:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-ro64-r1
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[12:20:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-ro64-r1
+[12:20:44] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-ro64-r1
+[12:21:07] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-ro64-r1
+[12:21:31] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-ro64-r1
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[12:21:53] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-ro64-r2
+[12:22:15] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-ro64-r2
+[12:22:37] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-ro64-r2
+[12:23:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-ro64-r2
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[12:23:23] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-ro64-r2
+[12:23:45] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-ro64-r2
+[12:24:07] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-ro64-r2
+[12:24:30] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-ro64-r2
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[12:24:53] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-ro64-r2
+[12:25:16] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-ro64-r2
+[12:25:38] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-ro64-r2
+[12:26:01] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-ro64-r2
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[12:26:24] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-ro64-r2
+[12:26:46] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-ro64-r2
+[12:27:08] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-ro64-r2
+[12:27:31] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-ro64-r2
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[12:27:55] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-ro64-r2
+[12:28:19] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-ro64-r2
+[12:28:41] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-ro64-r2
+[12:29:04] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-ro64-r2
+spray up: ens1f1np1 q=0 slow-path +300us dport 5201 (TSO/GSO off)
+[12:29:25] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0-ro64-r3
+[12:29:49] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0-ro64-r3
+[12:30:11] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0-ro64-r3
+[12:30:35] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0-ro64-r3
+spray up: ens1f1np1 q=0.05 slow-path +300us dport 5201 (TSO/GSO off)
+[12:30:57] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.05-ro64-r3
+[12:31:20] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.05-ro64-r3
+[12:31:42] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.05-ro64-r3
+[12:32:05] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.05-ro64-r3
+spray up: ens1f1np1 q=0.1 slow-path +300us dport 5201 (TSO/GSO off)
+[12:32:27] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.1-ro64-r3
+[12:32:50] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.1-ro64-r3
+[12:33:13] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.1-ro64-r3
+[12:33:36] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.1-ro64-r3
+spray up: ens1f1np1 q=0.25 slow-path +300us dport 5201 (TSO/GSO off)
+[12:33:58] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.25-ro64-r3
+[12:34:20] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.25-ro64-r3
+[12:34:43] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.25-ro64-r3
+[12:35:05] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.25-ro64-r3
+spray up: ens1f1np1 q=0.5 slow-path +300us dport 5201 (TSO/GSO off)
+[12:35:27] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/swift-q0.5-ro64-r3
+[12:35:49] bulk: mswift flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-q0.5-ro64-r3
+[12:36:12] bulk: mswift-k4 flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/mswift-k4-q0.5-ro64-r3
+[12:36:35] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-10/e4_spray/cubic-q0.5-ro64-r3
+bottleneck down
+[12:36:58] E4 done
+bottleneck down
+Bundle: /users/niki2357/gswift_results/results-2026-11-10.tgz
+All steps done.

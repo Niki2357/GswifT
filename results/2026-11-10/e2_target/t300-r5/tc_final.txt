@@ -1,0 +1,8 @@
+qdisc htb 1: root refcnt 2 r2q 10 default 0x10 direct_packets_stat 0 direct_qlen 32
+ Sent 277520759911 bytes 184222952 pkt (dropped 0, overlimits 19694393 requeues 0) 
+ backlog 0b 0p requeues 0
+qdisc fq_codel 10: parent 1:10 limit 300p flows 1 quantum 1514 target 1e+03ms ce_threshold 49us interval 2s memory_limit 32Mb ecn drop_batch 1 
+ Sent 277520759845 bytes 184222951 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0
+  maxpacket 46934 drop_overlimit 0 new_flow_count 1 ecn_mark 0 ce_mark 19944581
+  new_flows_len 0 old_flows_len 1

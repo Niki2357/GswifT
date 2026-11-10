@@ -1,0 +1,16 @@
+date=2026-11-10T12:14:48-07:00
+host=node0.quicly.gt-8803-dns-pg0.utah.cloudlab.us
+iface=ens1f1np1
+bn_rate=2gbit
+bn_limit=300
+bn_ecn_us=50
+rep=1
+nstat_mode=delta
+variant=mswift
+kcc=swift
+swift_args=--base-target 100 --trace-every 4 --median-cap 16 
+flows=8
+duration_s=15
+q=0
+spray_delay_us=300
+reorder_tol=64
