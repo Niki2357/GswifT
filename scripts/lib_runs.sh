@@ -13,6 +13,8 @@ variant() {
         swift-fs)     echo "swift|--fs-range 200" ;;
         swift-pmin)   echo "swift|--pace-min-rtt" ;;
         swift-pcap)   echo "swift|--pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
+        # Fixed target other than the default: swift-t<us>.
+        swift-t[0-9]*) echo "swift|--base-target ${1#swift-t}" ;;
         # Target relative to the flow's min RTT: swift-floor<headroom us>.
         swift-floor*) echo "swift|--target-floor --base-target ${1#swift-floor}" ;;
         # Lone-packet recovery: two packets in flight below 2, module rto_min.
@@ -78,6 +80,34 @@ run_incast() {  # run_incast <dir> <label> <flows> <bytes> <rounds> [extra swift
     peer "$AGG -s $SELF_IP:$INCAST_PORT -n $flows -b $bytes -r $rounds -g 2000 -w 5 \
           -o /tmp/gswift_incast.csv" 2>"$dir/agg.log" || log "incast_agg failed (see agg.log)"
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_incast.csv" "$dir/incast.csv" || log "no incast data"
+    qmon_stop "$dir"
+    nstat_save "$dir"
+    kill "$wpid" 2>/dev/null || true
+    wait "$wpid" 2>/dev/null || true
+    stop_swift
+    sleep 1
+}
+
+# Open-loop RPC workload (tools/incast/rpc_load on the receiver, incast_worker
+# here as the server, so responses cross the bottleneck).
+RPC_LOAD="$REPO/tools/incast/rpc_load"
+run_rpc() {  # run_rpc <dir> <label> <cdf> <load> <seconds> [extra swift args...]
+    local dir="$1" label="$2" cdf="$3" load="$4" dur="$5"; shift 5
+    log "rpc: $label $(basename "$cdf") load=$load ${dur}s -> $dir"
+    begin_variant "$dir" "$label" "$@"
+    printf 'workload=%s\nload=%s\nduration_s=%s\nconns=%s\n' \
+        "$(basename "$cdf" .cdf)" "$load" "$dur" "${RPC_CONNS:-128}" >> "$dir/meta.txt"
+    "$WORKER" -p "$INCAST_PORT" -C "$KCC" </dev/null >/dev/null 2>"$dir/worker.log" &
+    local wpid=$!
+    sleep 0.5
+    nstat_reset
+    qmon_start
+    local rate_bps
+    rate_bps="$(python3 -c "import re,sys; m=re.match(r'([0-9.]+)([gmk]?)bit','$BN_RATE'.lower()); print(float(m[1])*{'g':1e9,'m':1e6,'k':1e3,'':1}[m[2]])")"
+    peer "$RPC_LOAD -s $SELF_IP:$INCAST_PORT -c ${RPC_CONNS:-128} -l $load -R $rate_bps \
+          -f $cdf -t $dur -w 1 -S ${REP:-1} -o /tmp/gswift_rpc.csv" 2>"$dir/rpc.log" ||
+        log "rpc_load failed (see rpc.log)"
+    scp -q -o BatchMode=yes "$PEER:/tmp/gswift_rpc.csv" "$dir/rpc.csv" || log "no rpc data"
     qmon_stop "$dir"
     nstat_save "$dir"
     kill "$wpid" 2>/dev/null || true

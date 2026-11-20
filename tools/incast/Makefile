@@ -3,7 +3,7 @@ CC ?= gcc
 CFLAGS ?= -O2 -g -Wall -Wextra -std=gnu11
 
 .PHONY: all clean
-all: incast_worker incast_agg
+all: incast_worker incast_agg rpc_load
 
 incast_worker: incast_worker.c incast_common.h
 	$(CC) $(CFLAGS) -o $@ incast_worker.c -lpthread
@@ -11,5 +11,8 @@ incast_worker: incast_worker.c incast_common.h
 incast_agg: incast_agg.c incast_common.h
 	$(CC) $(CFLAGS) -o $@ incast_agg.c
 
+rpc_load: rpc_load.c incast_common.h
+	$(CC) $(CFLAGS) -o $@ rpc_load.c -lm
+
 clean:
-	rm -f incast_worker incast_agg
+	rm -f incast_worker incast_agg rpc_load
