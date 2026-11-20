@@ -54,6 +54,8 @@ struct swift_params {
     sw_u32 target_floor;    // 1: target = per-flow min RTT + base_target (headroom)
     sw_u32 rto_min_us;      // set the socket's minimum RTO at init (0 = leave)
     sw_u32 pace_halve;      // 1: halve sub-packet pacing (kernels whose pacer overshoots 2x)
+    sw_u32 target_jitter_us; // per-flow target offset, uniform in [0, J), drawn at init
+    sw_u32 pad1;
     // Derived by sw_params_finalize(), not set directly.
     sw_u64 fs_inv_lo_fp;    // 1/sqrt(fs_max_cwnd)
     sw_u64 fs_inv_hi_fp;    // 1/sqrt(fs_min_cwnd)
@@ -78,7 +80,7 @@ struct swift_state {
     sw_u8 ring_idx;
     sw_u8 ring_cnt;
     sw_u8 consec_over;
-    sw_u8 pad[2];
+    sw_u16 target_off_us; // this flow's random target offset (target_jitter_us)
     sw_u16 ring[SW_RING_SIZE];  // recent delay samples, us, saturating
     sw_u32 floor_us;      // measured RTT floor, set by the caller (0 = none yet)
 };

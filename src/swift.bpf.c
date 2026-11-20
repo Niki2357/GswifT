@@ -174,6 +174,7 @@ void BPF_PROG(swift_init, struct sock *sk)
 
     sw_init(&c->p, &st, h ? *h : c->p.default_hops);
     st.floor_us = rtt_floor_us(tcp_sk(sk));
+    st.target_off_us = sw_target_offset(&c->p, bpf_get_prandom_u32());
     st.target_us = sw_flow_target_us(&c->p, &st);
     if (c->p.rto_min_us) {
         // Also shortens the tail loss probe with one packet in flight, which

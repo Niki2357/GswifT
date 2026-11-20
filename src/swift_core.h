@@ -103,8 +103,15 @@ static inline sw_u32 sw_target_us(const struct swift_params *p, sw_u64 cwnd_fp,
 static inline sw_u32 sw_flow_target_us(const struct swift_params *p,
                                        const struct swift_state *s)
 {
-    sw_u32 t = sw_target_us(p, s->cwnd_fp, s->hops);
+    sw_u32 t = sw_target_us(p, s->cwnd_fp, s->hops) + s->target_off_us;
     return p->target_floor ? t + s->floor_us : t;
+}
+
+// Per-flow target offset from a random 32-bit value: uniform in [0, J).
+static inline sw_u16 sw_target_offset(const struct swift_params *p, sw_u32 rnd)
+{
+    sw_u32 j = p->target_jitter_us > 0xFFFF ? 0xFFFF : p->target_jitter_us;
+    return j ? (sw_u16)(rnd % j) : 0;
 }
 
 static inline void sw_init(const struct swift_params *p, struct swift_state *s,

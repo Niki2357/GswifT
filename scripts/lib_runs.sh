@@ -13,6 +13,9 @@ variant() {
         swift-fs)     echo "swift|--fs-range 200" ;;
         swift-pmin)   echo "swift|--pace-min-rtt" ;;
         swift-pcap)   echo "swift|--pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
+        # Fixed target with per-flow jitter: swift-t<base>j<J> (mean base + J/2).
+        swift-t[0-9]*j[0-9]*) local b="${1#swift-t}"
+            echo "swift|--base-target ${b%%j*} --target-jitter ${b#*j}" ;;
         # Fixed target other than the default: swift-t<us>.
         swift-t[0-9]*) echo "swift|--base-target ${1#swift-t}" ;;
         # Target relative to the flow's min RTT: swift-floor<headroom us>.

@@ -232,6 +232,20 @@ static void test_min_snd_cwnd(void)
     CHECK(sw_pace_rtt_us(&p, FP(2.5), 900, 40) == 900);
 }
 
+static void test_target_jitter(void)
+{
+    struct swift_params p = defaults();
+    struct swift_state s = fresh(&p, FP(10));
+    // Off by default.
+    CHECK(sw_target_offset(&p, 12345) == 0);
+    p.target_jitter_us = 40;
+    CHECK(sw_target_offset(&p, 12345) == 12345 % 40);
+    for (sw_u32 r = 0; r < 1000; r++)
+        CHECK(sw_target_offset(&p, r * 2654435761u) < 40);
+    s.target_off_us = 17;
+    CHECK(sw_flow_target_us(&p, &s) == 117);
+}
+
 static void test_target_floor(void)
 {
     struct swift_params p = defaults();
@@ -388,6 +402,7 @@ int main(void)
     test_snd_cwnd();
     test_min_snd_cwnd();
     test_target_floor();
+    test_target_jitter();
     test_pacing();
     test_pace_gap_cap();
     test_pace_rtt_choice();
