@@ -98,7 +98,7 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     // requested rate (0.89x after this halving). Likely cause: internal
     // pacing's jitter credit in tcp_update_skb_after_send, which can shorten
     // a gap by up to half. Root cause not yet confirmed.
-    if (sw_paced(p, st->cwnd_fp))
+    if (sw_paced(p, st->cwnd_fp) && !p->pace_raw)
         rate >>= 1;
 #endif
 
