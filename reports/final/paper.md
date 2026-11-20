@@ -210,9 +210,23 @@ Nov 9 and Nov 20) and xl170 (Intel E5-2640 v4, ConnectX-4 Lx, Nov 10). Kernel
 
 ### 5.2 Emulated bottleneck
 
-Receiver ingress via IFB, HTB rate limit, single `fq_codel` FIFO with CoDel
-disabled, `drop_batch 1`, CE marking at 50 µs for DCTCP. GRO is off while the
-bottleneck is up so the buffer counts wire packets (Section 5.4).
+All traffic arriving at the receiver is redirected through an IFB device,
+rate-limited to 10 Gb/s by HTB with a 1 MB token bucket, and queued in a
+single FIFO: `fq_codel` with one flow queue, CoDel disabled, `drop_batch 1`,
+bounded at the byte equivalent of 300 packets (100 for incast). Packets
+queued longer than 50 µs are CE-marked; only DCTCP negotiates ECN. A monitor
+samples the FIFO backlog every 10 ms.
+
+**What the emulator cannot do.** Two-ended captures show that the IFB and
+HTB path itself adds delay that the FIFO backlog does not show: about 80 µs
+when Swift holds the queue near empty at a 100 µs target, about 35 µs at
+300 µs, against 4-6 µs of receiver turnaround without the bottleneck. With
+a smaller token bucket (256-512 KB) HTB throttled often enough that this
+hidden delay collapsed Swift under an RPC load it handled easily without
+HTB. Targets below about 150 µs therefore measure the emulator, not Swift;
+Section 6.3 tests them without a bottleneck and with a veth-based
+alternative (E11). HTB occasionally passed up to 2-6% above its configured
+rate (two of about 40 baseline runs).
 
 ### 5.3 Workloads
 
