@@ -274,7 +274,52 @@ Repeats interleaved across the session; medians with min-max ranges.
 - 6.2 Delay-signal fidelity (E0, E7).
 - 6.3 Steady state against the target (E1/E2 block; floor-relative target).
 - 6.4 RPC workloads: slowdown versus message size (E8).
-- 6.5 Incast (E3 with module fixes).
+### 6.5 Incast
+
+N connections on one sender each return 64 KB to the receiver at the same
+moment, into a 100-packet buffer; 100 rounds per run, 3 repeats. Table 6.5
+gives the 99th-percentile round completion time (median over repeats; the
+repeats differ by under 10% in every cell).
+
+| Configuration | N = 32 | 64 | 128 | 256 |
+|---|---|---|---|---|
+| Cubic | 210 ms | 216 | 632 | 3115 |
+| DCTCP | 207 | 218 | 631 | 3115 |
+| Swift, fractional window | 209 | 213 | 370 | 857 |
+| Swift, one-packet floor | 11 | 23 | 222 | 614 |
+| Swift, all fixes (two in flight, module `rto_min` 5 ms, min-RTT pacing) | 13 | 25 | 53 | 124 |
+| Cubic, `rto_min` 5 ms | 9 | 21 | 52 | 121 |
+| DCTCP, `rto_min` 5 ms | 8 | 20 | 46 | 102 |
+| Swift, one-packet floor, `rto_min` 5 ms | 10 | 24 | 47 | 108 |
+
+**Loss recovery, not the control law, decides incast completion time.**
+With Linux's default 200 ms minimum RTO, every configuration that loses a
+packet in most rounds finishes near a multiple of 200 ms: Cubic and DCTCP
+at every fan-in, Swift with a one-packet floor from N = 128. Lowering the
+minimum RTO to 5 ms brings all algorithms within 20% of each other
+(102-124 ms at N = 256); DCTCP is fastest.
+
+**Fractional windows need both lone-packet fixes.** Swift's sub-packet
+window as published is the slowest Swift variant until N = 256 because each
+dropped lone packet waits for the tail-loss probe (Section 4.3). Keeping two
+packets in flight without a lower minimum RTO helps at N = 32 only
+(26 ms) and is worse than the plain window at N = 256 (1508 ms); a lower
+minimum RTO alone cuts N = 64 to 47 ms. Together with min-RTT pacing they
+bring the fractional window to 124 ms at N = 256, 5x faster than the
+one-packet floor at the default RTO, and level with Cubic and DCTCP at a
+5 ms RTO.
+
+**Swift's lasting advantage is loss avoidance.** At N = 64 Swift with a
+one-packet floor retransmits 0.12% of segments, against 15.8% for Cubic
+and 19.4% for DCTCP (default RTO); at N = 256 it is 2.2% against 21.5% and
+26.7%. Fewer losses do not translate into faster rounds once recovery is
+cheap, but they matter wherever retransmissions cost bandwidth or CPU.
+
+**Distance from the ideal.** Draining N x 64 KB at 10 Gb/s takes 3.4 ms at
+N = 64 and 13.4 ms at N = 256. The best configurations' median round times
+are 13-23 ms and 60-110 ms, 4-8x the ideal. [pending: where the gap goes,
+from per-flow FCTs and the queue trace.]
+
 - 6.6 Multipath spraying and MSwift (E4, per-packet, delay sweep).
 - 6.7 Buffer occupancy.
 
