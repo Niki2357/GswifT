@@ -7,7 +7,7 @@
 #   STEPS="e7 e9" ./scripts/run_session3.sh   (a subset)
 set -uo pipefail
 S="$(dirname "${BASH_SOURCE[0]}")"
-STEPS="${STEPS:-e7 e9 block e3 e3rto e8 e4ro e4def}"
+STEPS="${STEPS:-e7 e9 block e3 e3rto e8 e4ro e4def e10}"
 FAILED=()
 step() {  # step <name> [VAR=value ...] <script> [args...]
     local name="$1"; shift
@@ -36,6 +36,9 @@ step e4ro REPS=2 SPRAY_AT=rx REORDER_TOL=64 QS="0 0.05 0.1 0.25 0.35 0.5" \
     DELAYS="100 300 1000" "$S/run_e4_spray.sh"
 step e4def REPS=2 SPRAY_AT=rx QS="0 0.05 0.1 0.25 0.35 0.5" DELAYS="300" \
     "$S/run_e4_spray.sh"
+
+# RQ1: which host settings remove load-dependent delay.
+step e10 "$S/run_e10_knobs.sh"
 
 source "$S/common.sh"
 if (( ${#FAILED[@]} )); then echo "FAILED steps: ${FAILED[*]}"; exit 1; fi
