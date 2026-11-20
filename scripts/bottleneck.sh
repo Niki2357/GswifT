@@ -67,8 +67,13 @@ up() {
         action mirred egress redirect dev "$IFB"
 
     tc qdisc add dev "$IFB" root handle 1: htb default 10
+    # Token bucket: with a 256-512 KB bucket at 10 Gb/s, HTB throttles often
+    # and each throttle waits on a timer whose softirq can be deferred to
+    # ksoftirqd, adding hundreds of us that the sampled queue does not show.
+    # Swift read it as congestion and collapsed under an RPC load of 5 Gb/s
+    # (2026-11-20); 1 MB (~0.8 ms at 10 Gb/s) avoids it. BN_BURST overrides.
     tc class add dev "$IFB" parent 1: classid 1:10 htb rate "$rate" ceil "$rate" \
-        burst 256k cburst 256k
+        burst "${BN_BURST:-1m}" cburst "${BN_BURST:-1m}"
     # fq_codel with one flow queue = a single FIFO. CoDel's drop law is pushed
     # out of reach (target 1s) so overflow at LIMIT is the only drop cause.
     local ce=""
@@ -98,7 +103,7 @@ up() {
     # shellcheck disable=SC2086
     tc qdisc add dev "$IFB" parent "$fifo_parent" handle 10: fq_codel flows 1 \
         $lim target 1s interval 2s drop_batch 1 ecn $ce
-    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate, buffer $limit pkts ($lim), CE ${ecn_us}us, GRO $(ethtool -k "$IFACE" | awk '/^generic-receive-offload:/ {print $2}')${q:+, spray q=$q +${delay_us}us port $port}"
+    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate burst ${BN_BURST:-1m}, buffer $limit pkts ($lim), CE ${ecn_us}us, GRO $(ethtool -k "$IFACE" | awk '/^generic-receive-offload:/ {print $2}')${q:+, spray q=$q +${delay_us}us port $port}"
 }
 
 case "${1:-}" in

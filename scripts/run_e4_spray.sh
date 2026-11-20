@@ -61,7 +61,7 @@ multi_delay=0; [[ "$DELAYS" == *" "* ]] && multi_delay=1
 spray_for_run() {  # spray_for_run <q> <delay_us>
     if [[ "$SPRAY_AT" == rx ]]; then
         if [[ "$1" == 0 ]]; then bn_up; else
-            peer sudo "$REPO/scripts/bottleneck.sh" up "$BN_RATE" "$BN_LIMIT" "$BN_ECN_US" \
+            peer sudo BN_BURST="${BN_BURST:-1m}" "$REPO/scripts/bottleneck.sh" up "$BN_RATE" "$BN_LIMIT" "$BN_ECN_US" \
                 "$1" "$2" "$IPERF_PORT"
         fi
     else
