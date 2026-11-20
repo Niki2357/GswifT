@@ -302,8 +302,9 @@ minimum RTO to 5 ms brings all algorithms within 20% of each other
 **Fractional windows need both lone-packet fixes.** Swift's sub-packet
 window as published is the slowest Swift variant until N = 256 because each
 dropped lone packet waits for the tail-loss probe (Section 4.3). Keeping two
-packets in flight without a lower minimum RTO helps at N = 32 only
-(26 ms) and is worse than the plain window at N = 256 (1508 ms); a lower
+packets in flight without a lower minimum RTO helps at N = 32 (26 ms) and
+a little at N = 128, and is worse than the plain window at N = 256
+(1508 ms); a lower
 minimum RTO alone cuts N = 64 to 47 ms. Together with min-RTT pacing they
 bring the fractional window to 124 ms at N = 256, 5x faster than the
 one-packet floor at the default RTO, and level with Cubic and DCTCP at a
