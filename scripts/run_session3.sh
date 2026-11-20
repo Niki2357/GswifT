@@ -8,6 +8,7 @@
 set -uo pipefail
 S="$(dirname "${BASH_SOURCE[0]}")"
 STEPS="${STEPS:-e7 e9 block e3 e3rto e8 e4ro e4def e10}"
+echo "harness: per-flow iperf3, GRO on + byte-bounded FIFO, ECN only for DCTCP"
 FAILED=()
 step() {  # step <name> [VAR=value ...] <script> [args...]
     local name="$1"; shift
@@ -19,7 +20,7 @@ step() {  # step <name> [VAR=value ...] <script> [args...]
 # RQ1: where the RTT comes from (no bottleneck: GRO on; bottleneck: GRO off).
 step e7 "$S/run_e7_decomp.sh"
 # Implementation costs: pacing fidelity, CPU and BPF time.
-step e9 "$S/run_e9_overhead.sh"
+step e9 REPS=3 "$S/run_e9_overhead.sh"
 # Steady state: every target and the floor-relative target, interleaved.
 step block REPS=5 TARGETS="50 75 100 150 200 300" \
     BASELINES="cubic dctcp swift-floor60 swift-floor100" "$S/run_block.sh"

@@ -27,6 +27,7 @@ peer_cpu_snap() { peer head -1 /proc/stat; }
 
 if [[ " $PARTS " == *" A "* ]]; then
     bn_down
+    for REP in $(rep_list); do
     for mode in ${PACE_MODES:-raw halve pair}; do
         for x in $CWNDS; do
             case "$mode" in
@@ -34,11 +35,12 @@ if [[ " $PARTS " == *" A "* ]]; then
                 halve) extra="--pace-halve" ;;
                 pair)  extra="--min-snd-cwnd 2" ;;
             esac
-            d="$(run_dir e9_pacing "$mode-c$x")"
+            d="$(run_dir e9_pacing "$mode-c$x$(rep_suffix "$REP")")"
             SWIFT_BASE_ARGS="--trace-every 1" run_bulk "$d" swift 1 "$DUR" \
                 --min-cwnd "$x" --max-cwnd "$x" --init-cwnd "$x" $extra
             printf 'pin_cwnd=%s\npace_mode=%s\n' "$x" "$mode" >> "$d/meta.txt"
         done
+    done
     done
 fi
 
