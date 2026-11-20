@@ -3,8 +3,8 @@
 #
 # Part A, pacing fidelity: one flow, no bottleneck, Swift's window pinned at
 # X packets (min = max = init). Compares the delivered rate with the rate the
-# module requested, with and without the module's 1/2 sub-packet correction
-# (--pace-raw), and with a two-packet Linux window (--min-snd-cwnd 2).
+# module requested, without and with the optional 1/2 sub-packet correction
+# (--pace-halve), and with a two-packet Linux window (--min-snd-cwnd 2).
 #
 # Part B, cost: 8 flows through the bottleneck. Per algorithm, sender and
 # receiver CPU (from /proc/stat) and, for Swift, kernel BPF run time per
@@ -27,11 +27,11 @@ peer_cpu_snap() { peer head -1 /proc/stat; }
 
 if [[ " $PARTS " == *" A "* ]]; then
     bn_down
-    for mode in fixed raw pair; do
+    for mode in ${PACE_MODES:-raw halve pair}; do
         for x in $CWNDS; do
             case "$mode" in
-                fixed) extra="" ;;
-                raw)   extra="--pace-raw" ;;
+                raw)   extra="" ;;
+                halve) extra="--pace-halve" ;;
                 pair)  extra="--min-snd-cwnd 2" ;;
             esac
             d="$(run_dir e9_pacing "$mode-c$x")"

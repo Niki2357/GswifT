@@ -94,11 +94,11 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     __u64 max = sk->sk_max_pacing_rate;
 
 #if SWIFT_SET_PACING_STATUS
-    // Measured on 6.8: below one packet, the achieved rate was 1.8x the
-    // requested rate (0.89x after this halving). Likely cause: internal
-    // pacing's jitter credit in tcp_update_skb_after_send, which can shorten
-    // a gap by up to half. Root cause not yet confirmed.
-    if (sw_paced(p, st->cwnd_fp) && !p->pace_raw)
+    // Optional correction. On 6.8.0-138 (2026-11-09) and mainline 6.8.0
+    // (2026-11-10) sub-packet pacing delivered about 1.8x the requested rate;
+    // on Ubuntu 6.8.0-149 (2026-11-20) it delivered 1.00x (E9), so halving is
+    // off by default. Measure with scripts/run_e9_overhead.sh on new kernels.
+    if (sw_paced(p, st->cwnd_fp) && p->pace_halve)
         rate >>= 1;
 #endif
 

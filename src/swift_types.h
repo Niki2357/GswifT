@@ -53,7 +53,7 @@ struct swift_params {
     sw_u32 min_snd_cwnd;    // Linux window floor; below it pacing sets the rate (0/1 = 1)
     sw_u32 target_floor;    // 1: target = per-flow min RTT + base_target (headroom)
     sw_u32 rto_min_us;      // set the socket's minimum RTO at init (0 = leave)
-    sw_u32 pace_raw;        // 1: no halving of sub-packet pacing (measures Linux's own error)
+    sw_u32 pace_halve;      // 1: halve sub-packet pacing (kernels whose pacer overshoots 2x)
     // Derived by sw_params_finalize(), not set directly.
     sw_u64 fs_inv_lo_fp;    // 1/sqrt(fs_max_cwnd)
     sw_u64 fs_inv_hi_fp;    // 1/sqrt(fs_min_cwnd)
