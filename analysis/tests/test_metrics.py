@@ -177,3 +177,19 @@ def test_spray_fraction_receiver_side(tmp_path: Path) -> None:
         " Sent 3000000000 bytes 2025000 pkt (dropped 10, overlimits 0 requeues 0) \n")
     run = loaders.load_run(d)
     assert summaries.spray_fraction(run) == pytest.approx(0.25, abs=0.001)
+
+
+def test_iperf_goodput_uses_sender_duration(tmp_path: Path) -> None:
+    """Receiver-side seconds inflated to 18 s for an 8 s test: goodput comes
+    from bytes over the sender's 8 s (2026-11-20, e9_pacing raw-c0.25-r1)."""
+    import json
+    p = tmp_path / "iperf.json"
+    p.write_text(json.dumps({"end": {
+        "streams": [{"receiver": {"bytes": 120296944, "seconds": 18.01,
+                                  "bits_per_second": 53.4e6},
+                     "sender": {"bytes": 120296944, "seconds": 8.0}}],
+        "sum_received": {"bytes": 120296944, "seconds": 18.01, "bits_per_second": 53.4e6},
+        "sum_sent": {"bytes": 120296944, "seconds": 8.0, "retransmits": 0}}}))
+    r = loaders.load_iperf(p)
+    assert r.goodput_bps == pytest.approx(120.3e6, rel=0.001)
+    assert r.per_flow_bps[0] == pytest.approx(120.3e6, rel=0.001)

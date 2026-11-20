@@ -14,9 +14,14 @@ def merge(docs: list[dict]) -> dict:
     for d in docs:
         end = d["end"]
         streams.extend(end.get("streams", []))
-        recv_bps += float(end["sum_received"]["bits_per_second"])
-        recv_bytes += int(end["sum_received"].get("bytes", 0))
-        sent_bps += float(end["sum_sent"]["bits_per_second"])
+        recv, sent = end["sum_received"], end["sum_sent"]
+        # Received bytes over the sender's duration: iperf3's receiver-side
+        # duration is sometimes inflated (see analysis/loaders.py).
+        secs = float(sent.get("seconds", 0) or 0)
+        recv_bps += (int(recv["bytes"]) * 8 / secs) if recv.get("bytes") and secs > 0 \
+            else float(recv["bits_per_second"])
+        recv_bytes += int(recv.get("bytes", 0))
+        sent_bps += float(sent["bits_per_second"])
         retx += int(end["sum_sent"].get("retransmits", 0))
     return {"start": docs[0].get("start", {}) if docs else {},
             "end": {"streams": streams,

@@ -80,12 +80,24 @@ def load_nstat(path: Path) -> dict[str, float]:
     return out
 
 
+def _recv_bps(recv: dict, sent: dict) -> float:
+    """Received bytes over the sender's test duration. iperf3's receiver-side
+    duration is sometimes inflated (18 s for an 8 s test, 2026-11-20), which
+    under-reports its bits_per_second while the byte count is right."""
+    secs = float(sent.get("seconds", 0) or 0)
+    if recv.get("bytes") and secs > 0:
+        return float(recv["bytes"]) * 8 / secs
+    return float(recv["bits_per_second"])
+
+
 def load_iperf(path: Path) -> IperfResult | None:
     try:
         doc = json.loads(path.read_text())
         end = doc["end"]
-        flows = tuple(float(s["receiver"]["bits_per_second"]) for s in end.get("streams", []))
-        return IperfResult(goodput_bps=float(end["sum_received"]["bits_per_second"]),
+        flows = tuple(_recv_bps(s["receiver"], s.get("sender", {}))
+                      for s in end.get("streams", []))
+        total = sum(flows) if flows else _recv_bps(end["sum_received"], end.get("sum_sent", {}))
+        return IperfResult(goodput_bps=total,
                            retransmits=int(end.get("sum_sent", {}).get("retransmits", 0)),
                            per_flow_bps=flows)
     except (OSError, ValueError, KeyError, TypeError):
