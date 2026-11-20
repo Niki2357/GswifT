@@ -18,15 +18,15 @@ from analysis.loaders import cumulative_to_delta, load_experiment
 COLS = {
     "e0": ["load", "goodput_gbps", "samples", "rtt_us_min", "rtt_us_p50", "rtt_us_p99",
            "rtt_us_p999", "excess_us_p50", "excess_us_p99"],
-    "e1": ["variant", "flows", "goodput_gbps", "util_pct", "queue_us_p50", "queue_us_p99",
+    "e1": ["variant", "noise", "flows", "goodput_gbps", "util_pct", "queue_us_p50", "queue_us_p99",
            "rpc_us_p50", "rpc_us_p99", "retrans_pct", "jain", "rtt_us_p50", "target_us",
            "decr_per_s"],
-    "e2": ["base_target_us", "goodput_gbps", "util_pct", "rtt_us_p50", "rtt_us_p99",
+    "e2": ["noise", "base_target_us", "goodput_gbps", "util_pct", "rtt_us_p50", "rtt_us_p99",
            "inferred_queue_us_p50", "queue_us_p50", "queue_us_p99", "rpc_us_p99",
            "decr_per_s", "retrans_pct"],
     "e3": ["variant", "rto_min", "fanin", "qct_us_p50", "qct_us_p99", "fct_us_p99", "retrans_pct",
            "timeouts", "drops", "queue_us_p99", "frac_ack_pct"],
-    "e4": ["variant", "reorder_tol", "q", "q_measured", "goodput_gbps", "util_pct", "retrans_pct",
+    "e4": ["variant", "spray_at", "spray_delay_us", "reorder_tol", "q", "q_measured", "goodput_gbps", "util_pct", "retrans_pct",
            "reorder_events", "fast_recoveries", "decr_per_s", "rtt_us_p50"],
 }
 
@@ -34,10 +34,10 @@ COLS = {
 # Configuration columns (repeats share them) and the metrics whose spread
 # across repeats is reported.
 KEYS = {
-    "e1": ["flows", "variant"],
-    "e2": ["base_target_us"],
+    "e1": ["noise", "flows", "variant"],
+    "e2": ["noise", "base_target_us"],
     "e3": ["rto_min", "fanin", "variant"],
-    "e4": ["reorder_tol", "variant", "q"],
+    "e4": ["spray_at", "spray_delay_us", "reorder_tol", "variant", "q"],
 }
 SPREAD = {
     "e1": ["goodput_gbps", "util_pct", "queue_us_p99", "rpc_us_p99", "retrans_pct",

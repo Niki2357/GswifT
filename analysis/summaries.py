@@ -81,6 +81,7 @@ def bulk_row(run: Run) -> dict[str, float | str]:
         "run": run.name,
         "rep": _f(run.meta, "rep", 1),
         "variant": run.meta.get("variant", "?"),
+        "noise": run.meta.get("noise", "none"),
         "flows": _f(run.meta, "flows"),
         "goodput_gbps": gp / 1e9,
         "util_pct": 100 * gp / rate if rate == rate else np.nan,
@@ -166,8 +167,10 @@ def spray_fraction(run: Run) -> float:
     if not p.exists():
         return np.nan
     txt = p.read_text()
-    total = re.search(r"qdisc prio 1: .*?\n Sent (\d+) bytes", txt, re.S)
-    slow = re.search(r"qdisc netem \S+ parent 1:2.*?\n Sent (\d+) bytes", txt, re.S)
+    # Sender-side spraying: prio 1: with netem under 1:2. Receiver-side
+    # (bottleneck.sh spray mode): prio 2: with netem under 2:1.
+    total = re.search(r"qdisc prio [12]: .*?\n Sent (\d+) bytes", txt, re.S)
+    slow = re.search(r"qdisc netem \S+ parent (?:1:2|2:1).*?\n Sent (\d+) bytes", txt, re.S)
     if total and slow and int(total.group(1)):
         return int(slow.group(1)) / int(total.group(1))
     m = re.search(r"^\s*(\d+)\s+\d+\s+MARK", txt, re.M)
@@ -183,6 +186,8 @@ def summarize_e4(runs: list[Run]) -> pd.DataFrame:
         row = bulk_row(r)
         row["q"] = _f(r.meta, "q")
         row["reorder_tol"] = r.meta.get("reorder_tol", "default")
+        row["spray_at"] = r.meta.get("spray_at", "tx")
+        row["spray_delay_us"] = _f(r.meta, "spray_delay_us", 300)
         row["q_measured"] = spray_fraction(r)
         row["reorder_events"] = sum(r.nstat.get(k, 0) for k in
                                     ("TcpExtTCPSACKReorder", "TcpExtTCPTSReorder",
@@ -190,4 +195,5 @@ def summarize_e4(runs: list[Run]) -> pd.DataFrame:
         row["fast_recoveries"] = r.nstat.get("TcpExtTCPSackRecovery", np.nan)
         rows.append(row)
     df = pd.DataFrame(rows)
-    return df.sort_values(["reorder_tol", "variant", "q"]) if len(df) else df
+    return df.sort_values(["spray_at", "spray_delay_us", "reorder_tol", "variant", "q"]) \
+        if len(df) else df

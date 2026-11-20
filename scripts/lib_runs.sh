@@ -13,6 +13,13 @@ variant() {
         swift-fs)     echo "swift|--fs-range 200" ;;
         swift-pmin)   echo "swift|--pace-min-rtt" ;;
         swift-pcap)   echo "swift|--pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
+        # Target relative to the flow's min RTT: swift-floor<headroom us>.
+        swift-floor*) echo "swift|--target-floor --base-target ${1#swift-floor}" ;;
+        # Lone-packet recovery: two packets in flight below 2, module rto_min.
+        swift-pair)   echo "swift|--min-snd-cwnd 2" ;;
+        swift-rto)    echo "swift|--rto-min ${SW_RTO_MIN_US:-5000}" ;;
+        swift-pairrto) echo "swift|--min-snd-cwnd 2 --rto-min ${SW_RTO_MIN_US:-5000}" ;;
+        swift-fix)    echo "swift|--min-snd-cwnd 2 --rto-min ${SW_RTO_MIN_US:-5000} --pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
         mswift)       echo "swift|--median-cap 16" ;;
         mswift-k4)    echo "swift|--median-cap 16 --reorder-k 4" ;;
         cubic|dctcp|vegas|bbr|reno) echo "$1|" ;;

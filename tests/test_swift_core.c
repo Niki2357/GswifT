@@ -203,10 +203,51 @@ static void test_recovery(void)
 
 static void test_snd_cwnd(void)
 {
-    CHECK(sw_snd_cwnd(FP(0.01)) == 1);
-    CHECK(sw_snd_cwnd(FP(0.99)) == 1);
-    CHECK(sw_snd_cwnd(FP(1.0)) == 1);
-    CHECK(sw_snd_cwnd(FP(7.9)) == 7);
+    struct swift_params p = defaults();
+    CHECK(sw_snd_cwnd(&p, FP(0.01)) == 1);
+    CHECK(sw_snd_cwnd(&p, FP(0.99)) == 1);
+    CHECK(sw_snd_cwnd(&p, FP(1.0)) == 1);
+    CHECK(sw_snd_cwnd(&p, FP(7.9)) == 7);
+}
+
+static void test_min_snd_cwnd(void)
+{
+    struct swift_params p = defaults();
+    // Default: the paced regime is below one packet.
+    CHECK(!sw_paced(&p, FP(1.0)));
+    CHECK(sw_paced(&p, FP(0.99)));
+    p.min_snd_cwnd = 2;
+    // Linux keeps two packets in flight; pacing enforces the fractional rate.
+    CHECK(sw_snd_cwnd(&p, FP(0.05)) == 2);
+    CHECK(sw_snd_cwnd(&p, FP(1.5)) == 2);
+    CHECK(sw_snd_cwnd(&p, FP(3.2)) == 3);
+    CHECK(sw_paced(&p, FP(1.5)));
+    CHECK(!sw_paced(&p, FP(2.0)));
+    // cwnd 1.5, mss 1000, srtt 100 us: paced at 15 MB/s even with gain 0.
+    CHECK(NEAR(sw_pacing_Bps(&p, FP(1.5), 1000, 100), 15000000ULL, 100));
+    CHECK(sw_pacing_Bps(&p, FP(4), 1000, 100) == 0);
+    // pace_rtt_min and the gap cap follow the paced regime.
+    p.pace_rtt_min = 1;
+    CHECK(sw_pace_rtt_us(&p, FP(1.5), 900, 40) == 40);
+    CHECK(sw_pace_rtt_us(&p, FP(2.5), 900, 40) == 900);
+}
+
+static void test_target_floor(void)
+{
+    struct swift_params p = defaults();
+    struct swift_state s = fresh(&p, FP(10));
+    s.floor_us = 40;
+    // Off by default: the floor is ignored.
+    CHECK(sw_flow_target_us(&p, &s) == 100);
+    p.target_floor = 1;
+    // On: target = measured floor + base (headroom).
+    CHECK(sw_flow_target_us(&p, &s) == 140);
+    // A delay of 120 us is above base but below floor + base: increase.
+    CHECK(sw_on_ack(&p, &s, 1000, 120, 120, 1) == SW_INCREASE);
+    CHECK(s.target_us == 140);
+    // Without a floor sample yet (0) it falls back to base alone.
+    s.floor_us = 0;
+    CHECK(sw_on_ack(&p, &s, 2000, 120, 120, 1) != SW_INCREASE);
 }
 
 static void test_pacing(void)
@@ -345,6 +386,8 @@ int main(void)
     test_rto();
     test_recovery();
     test_snd_cwnd();
+    test_min_snd_cwnd();
+    test_target_floor();
     test_pacing();
     test_pace_gap_cap();
     test_pace_rtt_choice();

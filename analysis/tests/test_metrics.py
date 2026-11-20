@@ -157,3 +157,23 @@ def test_spray_fraction_uses_wire_bytes(tmp_path: Path) -> None:
         " Sent 931269660 bytes 615113 pkt (dropped 0, overlimits 0 requeues 0) \n")
     run = loaders.load_run(d)
     assert summaries.spray_fraction(run) == pytest.approx(0.249, abs=0.001)
+
+
+def test_spray_fraction_receiver_side(tmp_path: Path) -> None:
+    """Receiver-side spraying (bottleneck.sh spray mode): prio 2: under HTB,
+    netem 20: under 2:1, the FIFO under 2:2."""
+    from analysis import summaries
+    d = tmp_path / "run"
+    d.mkdir()
+    (d / "meta.txt").write_text("variant=swift\n")
+    (d / "spray_counters.txt").write_text(
+        "qdisc htb 1: root refcnt 2 r2q 10 default 0x10\n"
+        " Sent 4000000000 bytes 2700000 pkt (dropped 10, overlimits 0 requeues 0) \n"
+        "qdisc prio 2: parent 1:10 bands 2 priomap 1 1 1 1\n"
+        " Sent 4000000000 bytes 2700000 pkt (dropped 10, overlimits 0 requeues 0) \n"
+        "qdisc netem 20: parent 2:1 limit 100000 delay 300us\n"
+        " Sent 1000000000 bytes 675000 pkt (dropped 0, overlimits 0 requeues 0) \n"
+        "qdisc fq_codel 10: parent 2:2 limit 300p flows 1\n"
+        " Sent 3000000000 bytes 2025000 pkt (dropped 10, overlimits 0 requeues 0) \n")
+    run = loaders.load_run(d)
+    assert summaries.spray_fraction(run) == pytest.approx(0.25, abs=0.001)

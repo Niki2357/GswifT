@@ -85,14 +85,16 @@ static void write_stats(const struct swift_bpf *skel, unsigned long long records
             "n_init=%llu\nn_acks=%llu\nn_samples=%llu\nn_increase=%llu\n"
             "n_decrease=%llu\nn_hold=%llu\nn_rto=%llu\nn_recovery=%llu\n"
             "n_frac_acks=%llu\nn_ev_dropped=%llu\nn_no_cfg=%llu\n"
-            "trace_records=%llu\n",
+            "n_rto_min_set=%llu\nn_rto_min_err=%llu\ntrace_records=%llu\n",
             (unsigned long long)b->n_init, (unsigned long long)b->n_acks,
             (unsigned long long)b->n_samples, (unsigned long long)b->n_increase,
             (unsigned long long)b->n_decrease, (unsigned long long)b->n_hold,
             (unsigned long long)b->n_rto, (unsigned long long)b->n_recovery,
             (unsigned long long)b->n_frac_acks,
             (unsigned long long)b->n_ev_dropped,
-            (unsigned long long)b->n_no_cfg, records);
+            (unsigned long long)b->n_no_cfg,
+            (unsigned long long)b->n_rto_min_set,
+            (unsigned long long)b->n_rto_min_err, records);
 }
 
 static int run_loop(struct ring_buffer *rb, double duration_s)

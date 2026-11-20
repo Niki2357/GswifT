@@ -49,7 +49,10 @@ struct swift_params {
     sw_u32 reorder_k;       // MSwift: consecutive over-target samples to decrease
     sw_u32 pace_gain_pct;   // pacing gain when cwnd >= 1 (0 = unpaced)
     sw_u32 pace_rtt_min;    // below 1 packet, pace from min RTT, not srtt (0 = srtt)
-    sw_u32 max_pace_gap_us; // below 1 packet, longest gap between sends (0 = no cap)
+    sw_u32 max_pace_gap_us; // paced regime: longest gap between sends (0 = no cap)
+    sw_u32 min_snd_cwnd;    // Linux window floor; below it pacing sets the rate (0/1 = 1)
+    sw_u32 target_floor;    // 1: target = per-flow min RTT + base_target (headroom)
+    sw_u32 rto_min_us;      // set the socket's minimum RTO at init (0 = leave)
     sw_u32 pad0;
     // Derived by sw_params_finalize(), not set directly.
     sw_u64 fs_inv_lo_fp;    // 1/sqrt(fs_max_cwnd)
@@ -77,6 +80,7 @@ struct swift_state {
     sw_u8 consec_over;
     sw_u8 pad[2];
     sw_u16 ring[SW_RING_SIZE];  // recent delay samples, us, saturating
+    sw_u32 floor_us;      // measured RTT floor, set by the caller (0 = none yet)
 };
 
 // Outcome of one ACK, for telemetry.

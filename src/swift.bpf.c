@@ -98,11 +98,11 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     // requested rate (0.89x after this halving). Likely cause: internal
     // pacing's jitter credit in tcp_update_skb_after_send, which can shorten
     // a gap by up to half. Root cause not yet confirmed.
-    if (st->cwnd_fp < SW_FP_ONE)
+    if (sw_paced(p, st->cwnd_fp))
         rate >>= 1;
 #endif
 
-    tp->snd_cwnd = sw_snd_cwnd(st->cwnd_fp);
+    tp->snd_cwnd = sw_snd_cwnd(p, st->cwnd_fp);
 #if SWIFT_SET_PACING_STATUS
     // Kernel >= 6.0: ask TCP to pace internally. Older kernels reject this
     // write; there the sender's fq qdisc enforces sk_pacing_rate instead.
@@ -111,6 +111,18 @@ static __always_inline __u64 apply(struct sock *sk, const struct swift_params *p
     sk->sk_pacing_rate = (rate == 0 || rate > max) ? max : rate;
     return sk->sk_pacing_rate;
 }
+
+// Per-flow RTT floor: Linux's windowed min RTT (~0U before the first sample).
+static __always_inline __u32 rtt_floor_us(const struct tcp_sock *tp)
+{
+    __u32 v = tp->rtt_min.s[0].v;
+    return v == ~0U ? 0 : v;
+}
+
+// TCP_BPF_RTO_MIN from uapi/linux/bpf.h (an enum, so not testable with #ifdef).
+#define SW_TCP_BPF_RTO_MIN 1004
+#define SW_SOL_TCP 6
+__u64 n_rto_min_set, n_rto_min_err;
 
 static __always_inline void emit(struct sock *sk, const struct swift_state *st,
                                  __u8 type, __u8 action, long rtt_us,
@@ -161,7 +173,17 @@ void BPF_PROG(swift_init, struct sock *sk)
     struct swift_state st;
 
     sw_init(&c->p, &st, h ? *h : c->p.default_hops);
-    st.target_us = sw_target_us(&c->p, st.cwnd_fp, st.hops);
+    st.floor_us = rtt_floor_us(tcp_sk(sk));
+    st.target_us = sw_flow_target_us(&c->p, &st);
+    if (c->p.rto_min_us) {
+        // Also shortens the tail loss probe with one packet in flight, which
+        // waits rto_min before probing (the 200 ms incast stall).
+        int v = (int)c->p.rto_min_us;
+        if (bpf_setsockopt(sk, SW_SOL_TCP, SW_TCP_BPF_RTO_MIN, &v, sizeof(v)))
+            __sync_fetch_and_add(&n_rto_min_err, 1);
+        else
+            __sync_fetch_and_add(&n_rto_min_set, 1);
+    }
     __builtin_memcpy(ca_state(sk), &st, sizeof(st));
     __u64 pacing = apply(sk, &c->p, &st);
     __sync_fetch_and_add(&n_init, 1);
@@ -181,6 +203,7 @@ void BPF_PROG(swift_cong_control, struct sock *sk, const struct rate_sample *rs)
     __u32 acked = rs->acked_sacked;
 
     __builtin_memcpy(&st, ca_state(sk), sizeof(st));
+    st.floor_us = rtt_floor_us(tp);
     int act = sw_on_ack(&c->p, &st, tp->tcp_mstamp, rtt, srtt_of(tp), acked);
     st.ack_cnt++;
     __builtin_memcpy(ca_state(sk), &st, sizeof(st));
@@ -189,7 +212,7 @@ void BPF_PROG(swift_cong_control, struct sock *sk, const struct rate_sample *rs)
     __sync_fetch_and_add(&n_acks, 1);
     if (rtt > 0)
         __sync_fetch_and_add(&n_samples, 1);
-    if (st.cwnd_fp < SW_FP_ONE)
+    if (sw_paced(&c->p, st.cwnd_fp))
         __sync_fetch_and_add(&n_frac_acks, 1);
     count_action(act);
 

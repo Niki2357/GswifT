@@ -20,8 +20,11 @@ def leaf_stats(dev):
     raw = subprocess.run(["tc", "-s", "-j", "qdisc", "show", "dev", dev],
                          capture_output=True, text=True, check=True).stdout
     qdiscs = json.loads(raw)
+    # The shared FIFO is the fq_codel leaf. With spraying, a prio and a netem
+    # (slow path, not a queue) sit beside it and must not be counted.
+    fifo = [q for q in qdiscs if q.get("kind") == "fq_codel"]
     leaves = [q for q in qdiscs if q.get("kind") not in ("htb", "ingress")]
-    q = leaves[0] if leaves else qdiscs[0]
+    q = fifo[0] if fifo else (leaves[0] if leaves else qdiscs[0])
     return {
         "backlog_bytes": q.get("backlog", 0),
         "backlog_pkts": q.get("qlen", 0),

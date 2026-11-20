@@ -10,8 +10,14 @@
 # dupthresh N. Without it, sprayed packets trigger fast recovery, whose cwnd
 # cut bypasses the median filter. Original sysctls are restored on exit.
 #
+# SPRAY_AT=rx moves the path choice to the receiver's bottleneck, after
+# receive offloads with GRO off (bottleneck.sh spray mode), so the choice is
+# per wire packet and the sender keeps TSO/GSO. The bottleneck then defaults
+# to 10 Gb/s. DELAYS sweeps the slow-path delay.
+#
 #   ./scripts/run_e4_spray.sh                       (about 9 minutes)
 #   REORDER_TOL=64 ./scripts/run_e4_spray.sh
+#   SPRAY_AT=rx DELAYS="100 300 1000" REORDER_TOL=64 ./scripts/run_e4_spray.sh
 
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib_runs.sh"
@@ -19,9 +25,10 @@ check_env
 DUR="${DUR:-15}"
 QS="${QS:-0 0.05 0.1 0.25 0.5}"
 VARIANTS="${VARIANTS:-swift mswift mswift-k4 cubic}"
-DELAY_US="${DELAY_US:-300}"
+SPRAY_AT="${SPRAY_AT:-tx}"
+DELAYS="${DELAYS:-${DELAY_US:-300}}"
 FLOWS="${FLOWS:-8}"
-BN_RATE="${E4_BN_RATE:-2gbit}"
+if [[ "$SPRAY_AT" == rx ]]; then BN_RATE="${E4_BN_RATE:-10gbit}"; else BN_RATE="${E4_BN_RATE:-2gbit}"; fi
 REORDER_TOL="${REORDER_TOL:-}"
 
 RO_KEYS="net.ipv4.tcp_recovery net.ipv4.tcp_reordering net.ipv4.tcp_max_reordering"
@@ -45,19 +52,40 @@ spray_down() { sudo "$REPO/scripts/spray.sh" down >/dev/null || true; }
 trap 'spray_down; reorder_down; cleanup_all' EXIT
 
 tag="${REORDER_TOL:+-ro$REORDER_TOL}"
+[[ "$SPRAY_AT" == rx ]] && tag="$tag-rx"
+multi_delay=0; [[ "$DELAYS" == *" "* ]] && multi_delay=1
+
+# Sets up the path split for one run. tx: sender iptables + netem (counters
+# reset per run). rx: the receiver's bottleneck is rebuilt with spraying.
+spray_for_run() {  # spray_for_run <q> <delay_us>
+    if [[ "$SPRAY_AT" == rx ]]; then
+        if [[ "$1" == 0 ]]; then bn_up; else
+            peer sudo "$REPO/scripts/bottleneck.sh" up "$BN_RATE" "$BN_LIMIT" "$BN_ECN_US" \
+                "$1" "$2" "$IPERF_PORT"
+        fi
+    else
+        sudo "$REPO/scripts/spray.sh" up "$1" "$2" "$IPERF_PORT" >/dev/null
+    fi
+}
+spray_counters() {  # spray_counters <dir>
+    if [[ "$SPRAY_AT" == rx ]]; then cp "$1/tc_final.txt" "$1/spray_counters.txt"
+    else sudo "$REPO/scripts/spray.sh" show > "$1/spray_counters.txt" 2>&1; fi
+}
+
 reorder_up
-bn_up
+[[ "$SPRAY_AT" == rx ]] || bn_up
 for REP in $(rep_list); do
-    for q in $QS; do
-        sudo "$REPO/scripts/spray.sh" up "$q" "$DELAY_US" "$IPERF_PORT"
-        for v in $VARIANTS; do
-            d="$(run_dir e4_spray "$v-q$q$tag$(rep_suffix "$REP")")"
-            run_bulk "$d" "$v" "$FLOWS" "$DUR"
-            printf 'q=%s\nspray_delay_us=%s\nreorder_tol=%s\n' \
-                "$q" "$DELAY_US" "${REORDER_TOL:-default}" >> "$d/meta.txt"
-            sudo "$REPO/scripts/spray.sh" show > "$d/spray_counters.txt" 2>&1
-            # Reset counters between variants so each run's split can be checked.
-            sudo "$REPO/scripts/spray.sh" up "$q" "$DELAY_US" "$IPERF_PORT" >/dev/null
+    for dly in $DELAYS; do
+        dtag=""; (( multi_delay )) && dtag="-d$dly"
+        for q in $QS; do
+            for v in $VARIANTS; do
+                spray_for_run "$q" "$dly"
+                d="$(run_dir e4_spray "$v-q$q$dtag$tag$(rep_suffix "$REP")")"
+                run_bulk "$d" "$v" "$FLOWS" "$DUR"
+                printf 'q=%s\nspray_delay_us=%s\nreorder_tol=%s\nspray_at=%s\n' \
+                    "$q" "$dly" "${REORDER_TOL:-default}" "$SPRAY_AT" >> "$d/meta.txt"
+                spray_counters "$d"
+            done
         done
     done
 done

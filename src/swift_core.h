@@ -97,6 +97,16 @@ static inline sw_u32 sw_target_us(const struct swift_params *p, sw_u64 cwnd_fp,
            sw_flow_scale_us(p, cwnd_fp);
 }
 
+// Target for this flow: sw_target_us plus, with target_floor, the flow's
+// measured RTT floor. base_target is then headroom above the floor rather
+// than an absolute delay, so one setting carries across hosts.
+static inline sw_u32 sw_flow_target_us(const struct swift_params *p,
+                                       const struct swift_state *s)
+{
+    sw_u32 t = sw_target_us(p, s->cwnd_fp, s->hops);
+    return p->target_floor ? t + s->floor_us : t;
+}
+
 static inline void sw_init(const struct swift_params *p, struct swift_state *s,
                            sw_u32 hops)
 {
@@ -209,7 +219,7 @@ static inline int sw_on_ack(const struct swift_params *p, struct swift_state *s,
     if (rtt_us <= 0)
         return SW_NONE;
     s->retx_cnt = 0;
-    sw_u32 target = sw_target_us(p, s->cwnd_fp, s->hops);
+    sw_u32 target = sw_flow_target_us(p, s);
     sw_u32 delay = sw_delay_signal(p, s, (sw_u64)rtt_us);
     s->target_us = target;
     s->delay_us = delay;
@@ -252,12 +262,29 @@ static inline void sw_on_recovery(const struct swift_params *p,
         sw_scale_down(p, s, sw_mdf_floor(p), now_us);
 }
 
+// Linux's window floor in packets: 1, or min_snd_cwnd if set.
+static inline sw_u32 sw_min_snd_cwnd(const struct swift_params *p)
+{
+    return p->min_snd_cwnd > 1 ? p->min_snd_cwnd : 1;
+}
+
+// Paced regime: cwnd below Linux's window floor, so the window alone cannot
+// enforce it and pacing sets the rate. By default this is cwnd < 1. With
+// min_snd_cwnd 2, Linux keeps two packets in flight (sent as one 2-segment
+// burst per pacing gap), so a single loss can be detected by SACK instead of
+// waiting for the tail loss probe.
+static inline int sw_paced(const struct swift_params *p, sw_u64 cwnd_fp)
+{
+    return cwnd_fp < ((sw_u64)sw_min_snd_cwnd(p) << SW_FP_SHIFT);
+}
+
 // Integer window handed to Linux, which cannot go below 1.
-static inline sw_u32 sw_snd_cwnd(sw_u64 cwnd_fp)
+static inline sw_u32 sw_snd_cwnd(const struct swift_params *p, sw_u64 cwnd_fp)
 {
     sw_u64 w = cwnd_fp >> SW_FP_SHIFT;
-    if (w < 1)
-        return 1;
+    sw_u32 lo = sw_min_snd_cwnd(p);
+    if (w < lo)
+        return lo;
     return w > 0xFFFFFFFFULL ? 0xFFFFFFFFU : (sw_u32)w;
 }
 
@@ -268,14 +295,14 @@ static inline sw_u32 sw_snd_cwnd(sw_u64 cwnd_fp)
 static inline sw_u64 sw_pace_rtt_us(const struct swift_params *p, sw_u64 cwnd_fp,
                                     sw_u64 srtt_us, sw_u64 min_rtt_us)
 {
-    if (p->pace_rtt_min && cwnd_fp < SW_FP_ONE && min_rtt_us)
+    if (p->pace_rtt_min && sw_paced(p, cwnd_fp) && min_rtt_us)
         return min_rtt_us;
     return srtt_us;
 }
 
 // Pacing rate in bytes/s. 0 means "do not pace".
-// Below one packet: one MSS every srtt/cwnd, as in Swift.
-// At or above one packet: gain x cwnd x mss / srtt, or unpaced if gain is 0.
+// Paced regime (below one packet by default): one MSS every srtt/cwnd, as in
+// Swift. Otherwise: gain x cwnd x mss / srtt, or unpaced if gain is 0.
 static inline sw_u64 sw_pacing_Bps(const struct swift_params *p, sw_u64 cwnd_fp,
                                    sw_u32 mss, sw_u64 srtt_us)
 {
@@ -285,7 +312,7 @@ static inline sw_u64 sw_pacing_Bps(const struct swift_params *p, sw_u64 cwnd_fp,
     if (bytes_per_rtt == 0)
         bytes_per_rtt = 1;
     sw_u64 rate = bytes_per_rtt * SW_US_PER_S / srtt_us;
-    if (cwnd_fp < SW_FP_ONE) {
+    if (sw_paced(p, cwnd_fp)) {
         // Optional floor: at least one MSS every max_pace_gap_us.
         if (p->max_pace_gap_us) {
             sw_u64 floor = (sw_u64)mss * SW_US_PER_S / p->max_pace_gap_us;
