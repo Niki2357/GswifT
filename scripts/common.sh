@@ -54,7 +54,7 @@ check_env() {
   Log in to node0 with agent forwarding (ssh -A ...) and retry."
     peer test -x "$AGG" || die "repo not built on $PEER at $REPO"
     # iperf3 servers stay "busy" after an aborted test; start fresh ones.
-    peer 'pkill -x iperf3' 2>/dev/null || true
+    peer 'sudo pkill -x iperf3' 2>/dev/null || true
     [[ "$(sysctl -n net.ipv4.tcp_slow_start_after_idle)" == 0 ]] ||
         log "WARNING: session settings missing; run scripts/tune_session.sh on both nodes"
 }
@@ -118,12 +118,12 @@ bn_down() { peer sudo "$REPO/scripts/bottleneck.sh" down || true; }
 
 # Queue monitor on the receiver, writing to a peer-local temp file.
 QMON_REMOTE=/tmp/gswift_qmon.csv
-qmon_start() { peer "nohup sudo python3 $REPO/scripts/qmon.py ifb0 $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
+qmon_start() { peer "nohup sudo python3 $REPO/scripts/qmon.py ${QMON_DEV:-ifb0} $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
 qmon_stop()  {
     local dir="$1"
     peer 'sudo kill $(cat /tmp/gswift_qmon.pid) 2>/dev/null; sleep 0.3' || true
     scp -q -o BatchMode=yes "$PEER:$QMON_REMOTE" "$dir/qmon.csv" 2>/dev/null || log "no qmon data"
-    peer sudo tc -s qdisc show dev ifb0 > "$dir/tc_final.txt" 2>&1 || true
+    peer sudo tc -s qdisc show dev "${QMON_DEV:-ifb0}" > "$dir/tc_final.txt" 2>&1 || true
 }
 
 # Latency probe: 64 B request/response, response crosses the bottleneck.
@@ -134,7 +134,8 @@ probe_server_start() {
 }
 probe_server_stop() { [[ -n "$PROBE_WORKER_PID" ]] && kill "$PROBE_WORKER_PID" 2>/dev/null || true; PROBE_WORKER_PID=""; }
 probe_run() {  # probe_run <dir> <seconds>   (runs in background on peer)
-    peer "$AGG -s $SELF_IP:$PROBE_PORT -n 1 -b 64 -t $2 -g 200 -w 50 -o /tmp/gswift_probe.csv" \
+    local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    peer "$pre $AGG -s $SELF_IP:$PROBE_PORT -n 1 -b 64 -t $2 -g 200 -w 50 -o /tmp/gswift_probe.csv" \
         2>"$1/probe.log" &
     PROBE_PID=$!
 }
@@ -204,8 +205,10 @@ ensure_iperf_server() {
     local n="${1:-1}"
     (( n <= IPERF_PORT_SPAN )) || die "at most $IPERF_PORT_SPAN iperf3 ports"
     peer_swift_up
+    # RX_NS: run the servers inside that netns on the receiver (scripts/rxns.sh).
+    local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
     peer "for p in \$(seq $IPERF_PORT $((IPERF_PORT + n - 1))); do
-              ss -Hltn \"sport = :\$p\" | grep -q . || iperf3 -s -D -p \$p; done"
+              $pre ss -Hltn \"sport = :\$p\" | grep -q . || $pre iperf3 -s -D -p \$p; done"
 }
 
 cleanup_all() {
