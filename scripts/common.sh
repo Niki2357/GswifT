@@ -36,6 +36,7 @@ rep_list()   { seq 1 "$REPS"; }
 rep_suffix() { if (( REPS > 1 )); then echo "-r$1"; fi; }
 
 IPERF_PORT=5201
+IPERF_PORT_SPAN=64   # bulk flows use ports IPERF_PORT .. IPERF_PORT+SPAN-1
 PROBE_PORT=6001
 INCAST_PORT=6000
 
@@ -182,9 +183,14 @@ peer_swift_down() {
     peer 'sudo pkill -INT -x swiftctl 2>/dev/null; rm -f /tmp/gswift_peer_swiftctl.pid' || true
 }
 
+# One iperf3 server per port: ensure_iperf_server [n_ports]. iperf3 3.9 is
+# single-threaded, so bulk runs use one client process per flow (see run_bulk).
 ensure_iperf_server() {
+    local n="${1:-1}"
+    (( n <= IPERF_PORT_SPAN )) || die "at most $IPERF_PORT_SPAN iperf3 ports"
     peer_swift_up
-    peer "pgrep -x iperf3 >/dev/null || iperf3 -s -D -p $IPERF_PORT"
+    peer "for p in \$(seq $IPERF_PORT $((IPERF_PORT + n - 1))); do
+              ss -Hltn \"sport = :\$p\" | grep -q . || iperf3 -s -D -p \$p; done"
 }
 
 cleanup_all() {

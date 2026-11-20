@@ -39,7 +39,7 @@ build_spray() {  # build_spray <q> <port>
     thresh="$(python3 -c "q=float('$1'); assert 0 <= q <= 1; print(min(int(q * 2**32), 2**32 - 1))")" ||
         { echo "q must be in [0,1]" >&2; exit 1; }
     clang -O2 -g -target bpf -I"/usr/include/$(uname -m)-linux-gnu" \
-        -DTHRESH="${thresh}U" -DDPORT="$2" -DSLOW_CLASSID=0x20001 \
+        -DTHRESH="${thresh}U" -DDPORT_LO="$2" -DDPORT_HI="$(( $2 + 63 ))" -DSLOW_CLASSID=0x20001 \
         -c "$REPO/tools/spray/spray_cls.bpf.c" -o "$SPRAY_OBJ"
 }
 

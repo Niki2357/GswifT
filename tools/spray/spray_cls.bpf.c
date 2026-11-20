@@ -1,7 +1,7 @@
 // Per-packet random path choice for the MSwift spraying experiment.
 //
 // A cls_bpf classifier (non direct-action) on the receiver's bottleneck
-// qdisc. Each TCP data packet to DPORT goes to SLOW_CLASSID (the slow,
+// qdisc. Each TCP data packet to a port in [DPORT_LO, DPORT_HI] goes to SLOW_CLASSID (the slow,
 // netem-delayed path) with probability THRESH / 2^32; everything else
 // returns 0, so the qdisc's default band (the shared FIFO) takes it.
 //
@@ -9,7 +9,7 @@
 // independently, which is MSwift's model. Built per run with the threshold
 // as a constant (scripts/bottleneck.sh does this):
 //
-//   clang -O2 -target bpf -DTHRESH=429496730 -DDPORT=5201 \
+//   clang -O2 -target bpf -DTHRESH=429496730 -DDPORT_LO=5201 -DDPORT_HI=5264 \
 //         -DSLOW_CLASSID=0x20001 -c spray_cls.bpf.c -o spray_cls.o
 
 #include <linux/bpf.h>
@@ -23,8 +23,11 @@
 #ifndef THRESH
 #error "THRESH (probability x 2^32) is required"
 #endif
-#ifndef DPORT
-#define DPORT 5201
+#ifndef DPORT_LO
+#define DPORT_LO 5201
+#endif
+#ifndef DPORT_HI
+#define DPORT_HI DPORT_LO
 #endif
 #ifndef SLOW_CLASSID
 #define SLOW_CLASSID 0x20001
@@ -61,7 +64,8 @@ int spray(struct __sk_buff *skb)
     int l4 = off + ip.ihl * 4;
     if (bpf_skb_load_bytes(skb, l4 + 2, &dport, sizeof(dport)))
         return 0;
-    if (dport != bpf_htons(DPORT))
+    __u16 dp = bpf_ntohs(dport);
+    if (dp < DPORT_LO || dp > DPORT_HI)
         return 0;
     // Pure ACKs carry no data; leave them on the direct path.
     __u32 ip_len = bpf_ntohs(ip.tot_len);

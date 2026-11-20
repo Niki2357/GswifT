@@ -43,6 +43,28 @@ begin_variant() {  # begin_variant <dir> <label> [extra swift args...]
         "swift_args=$SWIFT_BASE_ARGS $vargs $*"
 }
 
+# iperf3 3.9 runs all -P streams in one thread with blocking writes: one
+# stream paced far below a packet per RTT stalls every other stream (found
+# 2026-11-20). So each flow gets its own client process and server port.
+# IPERF_SINGLE=1 restores the old single-process mode, for comparison.
+iperf_clients() {  # iperf_clients <dir> <flows> <seconds>
+    local dir="$1" flows="$2" dur="$3" i pids=()
+    if [[ -n "${IPERF_SINGLE:-}" ]]; then
+        iperf3 -c "$PEER_IP" -p "$IPERF_PORT" -C "$KCC" -P "$flows" -t "$dur" \
+            -J ${IPERF_EXTRA:-} > "$dir/iperf.json" || log "iperf3 failed (see iperf.json)"
+        return 0
+    fi
+    mkdir -p "$dir/iperf"
+    for (( i = 0; i < flows; i++ )); do
+        iperf3 -c "$PEER_IP" -p "$((IPERF_PORT + i))" -C "$KCC" -t "$dur" \
+            -J ${IPERF_EXTRA:-} > "$dir/iperf/flow$i.json" &
+        pids+=($!)
+    done
+    for i in "${pids[@]}"; do wait "$i" || log "an iperf3 client failed (see $dir/iperf)"; done
+    python3 "$REPO/scripts/merge_iperf.py" "$dir/iperf.json" "$dir"/iperf/flow*.json ||
+        log "could not merge iperf output"
+}
+
 # Bulk transfer through the bottleneck with a concurrent latency probe.
 run_bulk() {  # run_bulk <dir> <label> <flows> <seconds> [extra swift args...]
     local dir="$1" label="$2" flows="$3" dur="$4"; shift 4
@@ -50,14 +72,14 @@ run_bulk() {  # run_bulk <dir> <label> <flows> <seconds> [extra swift args...]
     begin_variant "$dir" "$label" "$@"
     echo "flows=$flows" >> "$dir/meta.txt"
     echo "duration_s=$dur" >> "$dir/meta.txt"
-    ensure_iperf_server
+    echo "iperf_mode=$([[ -n "${IPERF_SINGLE:-}" ]] && echo single || echo per-flow)" >> "$dir/meta.txt"
+    ensure_iperf_server "$flows"
     probe_server_start
     nstat_reset
     qmon_start
     probe_run "$dir" "$((dur + 1))"
     sleep 0.5
-    iperf3 -c "$PEER_IP" -p "$IPERF_PORT" -C "$KCC" -P "$flows" -t "$dur" \
-        -J ${IPERF_EXTRA:-} > "$dir/iperf.json" || log "iperf3 failed (see iperf.json)"
+    iperf_clients "$dir" "$flows" "$dur"
     probe_collect "$dir"
     qmon_stop "$dir"
     nstat_save "$dir"

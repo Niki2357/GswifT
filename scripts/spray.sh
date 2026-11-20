@@ -46,10 +46,10 @@ up() {
     tc filter add dev "$IFACE" parent 1: protocol ip handle "$MARK" fw flowid 1:2
 
     if python3 -c "import sys; sys.exit(0 if float('$q') > 0 else 1)"; then
-        iptables -t mangle -A OUTPUT -o "$IFACE" -p tcp --dport "$port" \
+        iptables -t mangle -A OUTPUT -o "$IFACE" -p tcp --dport "$port:$((port + 63))" \
             -m statistic --mode random --probability "$q" -j MARK --set-xmark "$MARK"
     fi
-    echo "spray up: $IFACE q=$q slow-path +${delay_us}us dport $port (TSO/GSO off)"
+    echo "spray up: $IFACE q=$q slow-path +${delay_us}us dport $port-$((port + 63)) (TSO/GSO off)"
 }
 
 show() {

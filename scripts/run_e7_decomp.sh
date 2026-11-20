@@ -34,10 +34,10 @@ for cfg in $CONFIGS; do
     if [[ "$bn" == bn ]]; then bn_up; else bn_down; fi
     if [[ "$rate" == max ]]; then extra=""; else extra="-b $(( ${rate%G} * 1000 / flows ))M"; fi
     # Snap 96 bytes: headers only. Big buffers so the capture keeps up.
-    sudo tcpdump -i "$IFACE" -s 96 -B 262144 -n -w "$d/tx.pcap" "tcp port $IPERF_PORT" \
+    sudo tcpdump -i "$IFACE" -s 96 -B 262144 -n -w "$d/tx.pcap" "tcp portrange $IPERF_PORT-$((IPERF_PORT + IPERF_PORT_SPAN - 1))" \
         </dev/null >"$d/tcpdump_tx.log" 2>&1 &
     peer "nohup sudo tcpdump -i \$(ip -br addr | awk '\$3 ~ /^10\\.10\\.1\\./ {print \$1; exit}') \
-          -s 96 -B 262144 -n -w $CAP_PEER 'tcp port $IPERF_PORT' </dev/null >/tmp/gswift_tcpdump_rx.log 2>&1 &"
+          -s 96 -B 262144 -n -w $CAP_PEER 'tcp portrange $IPERF_PORT-$((IPERF_PORT + IPERF_PORT_SPAN - 1))' </dev/null >/tmp/gswift_tcpdump_rx.log 2>&1 &"
     sleep 1.5
     IPERF_EXTRA="$extra" run_bulk "$d" "$VARIANT" "$flows" "$DUR" --base-target "$TARGET" --trace-every 1
     printf 'bottleneck=%s\noffered=%s\n' "$bn" "$rate" >> "$d/meta.txt"

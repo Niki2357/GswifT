@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 PCTS = (10, 50, 90, 99)
-DATA_PORT = 5201
+DATA_PORTS = range(5201, 5265)  # one iperf3 port per flow
 
 
 def read_pcap(path: Path):
@@ -69,14 +69,14 @@ def _flows(path: Path):
     retx: dict[int, set[int]] = {}
     acks: dict[int, list[tuple[float, int]]] = {}
     for t, _src, sport, dport, seq, ack, plen in read_pcap(path):
-        if dport == DATA_PORT and plen > 0:
+        if dport in DATA_PORTS and plen > 0:
             end = (seq + plen) & 0xFFFFFFFF
             d = data.setdefault(sport, {})
             if end in d:
                 retx.setdefault(sport, set()).add(end)
             else:
                 d[end] = t
-        elif sport == DATA_PORT:
+        elif sport in DATA_PORTS:
             acks.setdefault(dport, []).append((t, ack))
     out = {}
     for port, d in data.items():
