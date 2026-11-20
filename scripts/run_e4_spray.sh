@@ -12,8 +12,9 @@
 #
 # SPRAY_AT=rx moves the path choice to the receiver's bottleneck, after
 # receive offloads with GRO off (bottleneck.sh spray mode), so the choice is
-# per wire packet and the sender keeps TSO/GSO. The bottleneck then defaults
-# to 10 Gb/s. DELAYS sweeps the slow-path delay.
+# per wire packet and the sender keeps TSO/GSO. GRO off limits the receiver's
+# IFB to ~2 Gb/s, so the bottleneck defaults to 1 Gb/s. DELAYS sweeps the
+# slow-path delay.
 #
 #   ./scripts/run_e4_spray.sh                       (about 9 minutes)
 #   REORDER_TOL=64 ./scripts/run_e4_spray.sh
@@ -28,7 +29,7 @@ VARIANTS="${VARIANTS:-swift mswift mswift-k4 cubic}"
 SPRAY_AT="${SPRAY_AT:-tx}"
 DELAYS="${DELAYS:-${DELAY_US:-300}}"
 FLOWS="${FLOWS:-8}"
-if [[ "$SPRAY_AT" == rx ]]; then BN_RATE="${E4_BN_RATE:-10gbit}"; else BN_RATE="${E4_BN_RATE:-2gbit}"; fi
+if [[ "$SPRAY_AT" == rx ]]; then BN_RATE="${E4_BN_RATE:-1gbit}"; else BN_RATE="${E4_BN_RATE:-2gbit}"; fi
 REORDER_TOL="${REORDER_TOL:-}"
 
 RO_KEYS="net.ipv4.tcp_recovery net.ipv4.tcp_reordering net.ipv4.tcp_max_reordering"

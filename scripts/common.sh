@@ -53,6 +53,8 @@ check_env() {
     peer true 2>/dev/null || die "cannot ssh to $PEER without a password.
   Log in to node0 with agent forwarding (ssh -A ...) and retry."
     peer test -x "$AGG" || die "repo not built on $PEER at $REPO"
+    # iperf3 servers stay "busy" after an aborted test; start fresh ones.
+    peer 'pkill -x iperf3' 2>/dev/null || true
     [[ "$(sysctl -n net.ipv4.tcp_slow_start_after_idle)" == 0 ]] ||
         log "WARNING: session settings missing; run scripts/tune_session.sh on both nodes"
 }
@@ -69,6 +71,16 @@ run_dir() {
 # registered one; re-run after registering swift.
 ALLOW_CC='sudo sysctl -qw net.ipv4.tcp_allowed_congestion_control="$(cat /proc/sys/net/ipv4/tcp_available_congestion_control)"'
 allow_all_cc() { eval "$ALLOW_CC"; }
+
+# ECN only for DCTCP. Applications set the congestion control after
+# connect(), so DCTCP's own ECN request never reaches the SYN and a global
+# tcp_ecn=1 made every algorithm (Cubic too) ECN-capable and react to the
+# 50 us marks (found 2026-11-20). The receiver keeps tcp_ecn=1 so it requests
+# ECN when it opens connections (incast, RPC); the sender refuses it unless
+# the listener is DCTCP.
+set_ecn_for() {  # set_ecn_for <kernel cc>
+    sudo sysctl -qw net.ipv4.tcp_ecn="$([[ "$1" == dctcp ]] && echo 1 || echo 0)"
+}
 
 # Swift loader lifecycle. Extra args go to swiftctl.
 SWIFT_PID=""
@@ -101,7 +113,7 @@ stop_swift() {
 }
 
 # Bottleneck on the receiver.
-bn_up()   { peer sudo BN_GRO="${BN_GRO:-off}" "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"; }
+bn_up()   { peer sudo BN_GRO="${BN_GRO:-on}" "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"; }
 bn_down() { peer sudo "$REPO/scripts/bottleneck.sh" down || true; }
 
 # Queue monitor on the receiver, writing to a peer-local temp file.
@@ -162,7 +174,8 @@ write_meta() {  # write_meta <dir> key=value ...
         echo "bn_rate=$BN_RATE"
         echo "bn_limit=$BN_LIMIT"
         echo "bn_ecn_us=$BN_ECN_US"
-        echo "bn_gro=${BN_GRO:-off}"
+        echo "bn_gro=${BN_GRO:-on}"
+        echo "tcp_ecn_sender=$(sysctl -n net.ipv4.tcp_ecn)"
         echo "rep=$REP"
         echo "nstat_mode=delta"
         printf '%s\n' "$@"

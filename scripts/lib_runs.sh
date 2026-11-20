@@ -35,6 +35,7 @@ begin_variant() {  # begin_variant <dir> <label> [extra swift args...]
     local v; v="$(variant "$label")"
     KCC="${v%%|*}"
     local vargs="${v#*|}"
+    set_ecn_for "$KCC"
     if [[ "$KCC" == swift ]]; then
         # shellcheck disable=SC2086
         start_swift "$dir" $SWIFT_BASE_ARGS $vargs "$@"

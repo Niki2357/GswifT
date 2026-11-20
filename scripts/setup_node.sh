@@ -91,7 +91,8 @@ tc qdisc show dev "$IFACE" | head -2 || true
 echo "=== sysctls"
 # Keep cwnd across idle periods between incast rounds (all algorithms).
 sudo sysctl -qw net.ipv4.tcp_slow_start_after_idle=0
-# Let DCTCP negotiate ECN when the peer asks.
+# ECN: requested on connections this node opens. The experiment scripts set
+# the sender's tcp_ecn per run (1 for DCTCP, 0 otherwise; see set_ecn_for).
 sudo sysctl -qw net.ipv4.tcp_ecn=1
 # Large socket buffers so window, not buffer, limits throughput.
 sudo sysctl -qw net.core.rmem_max=268435456 net.core.wmem_max=268435456

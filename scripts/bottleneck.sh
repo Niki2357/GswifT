@@ -5,10 +5,15 @@
 # ECN_US get CE-marked if ECN-capable (only DCTCP is), so every algorithm sees
 # the same buffer.
 #
-# GRO is turned off on the interface while the bottleneck is up (restored by
-# `down`): with GRO on, the FIFO limit counts GRO aggregates of up to 64 KB,
-# not wire packets, so "300 packets" held up to ~16 MB in bulk runs (found
-# 2026-11-20). BN_GRO=on keeps GRO, for comparison with earlier sessions.
+# Buffer accounting. The FIFO limit must count wire packets, but with GRO on
+# the qdisc sees GRO aggregates (5-55 KB each in bulk runs), so a packet limit
+# of 300 held up to ~16 MB (found 2026-11-20). With GRO off, IFB tops out at
+# about 2-3 Gb/s (per-packet cost), too slow for a 10 Gb/s bottleneck. So by
+# default GRO stays on and the buffer is bounded in bytes with fq_codel's
+# memory_limit: LIMIT x BN_MEM_PER_PKT, where BN_MEM_PER_PKT (default 2180) is
+# the skb memory fq_codel charges per 1514 B packet, measured on mlx5
+# (c6525-25g). Spray mode needs one choice per wire packet, so it turns GRO
+# off and uses a packet limit (keep its rate at ~1 Gb/s).
 #
 #   sudo bottleneck.sh up 10gbit 300 50     rate, buffer (packets), mark (us)
 #   sudo bottleneck.sh up 10gbit 300 50 0.25 300 5201
@@ -68,7 +73,7 @@ up() {
     # out of reach (target 1s) so overflow at LIMIT is the only drop cause.
     local ce=""
     [[ "$ecn_us" -gt 0 ]] && ce="ce_threshold ${ecn_us}us"
-    if [[ "${BN_GRO:-off}" != on || -n "$q" ]] &&
+    if [[ "${BN_GRO:-on}" != on || -n "$q" ]] &&
        ethtool -k "$IFACE" | grep -q '^generic-receive-offload: on'; then
         touch /tmp/gswift_gro_was_on
         ethtool -K "$IFACE" gro off
@@ -86,9 +91,14 @@ up() {
         tc filter add dev "$IFB" parent 2: protocol ip prio 1 bpf obj "$SPRAY_OBJ" sec classifier
         fifo_parent=2:2
     fi
+    local lim="limit $limit"
+    if ethtool -k "$IFACE" | grep -q '^generic-receive-offload: on'; then
+        lim="limit 100000 memory_limit $(( limit * ${BN_MEM_PER_PKT:-2180} ))"
+    fi
+    # shellcheck disable=SC2086
     tc qdisc add dev "$IFB" parent "$fifo_parent" handle 10: fq_codel flows 1 \
-        limit "$limit" target 1s interval 2s drop_batch 1 ecn $ce
-    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate, buffer $limit pkts, CE ${ecn_us}us, GRO $(ethtool -k "$IFACE" | awk '/^generic-receive-offload:/ {print $2}')${q:+, spray q=$q +${delay_us}us port $port}"
+        $lim target 1s interval 2s drop_batch 1 ecn $ce
+    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate, buffer $limit pkts ($lim), CE ${ecn_us}us, GRO $(ethtool -k "$IFACE" | awk '/^generic-receive-offload:/ {print $2}')${q:+, spray q=$q +${delay_us}us port $port}"
 }
 
 case "${1:-}" in
