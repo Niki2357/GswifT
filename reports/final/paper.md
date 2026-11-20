@@ -164,8 +164,14 @@ interrupt paths per load].
 Swift needs windows below one packet. GSwifT keeps a Q16 fixed-point window in
 its own state, gives Linux `max(1, floor(cwnd))`, and enforces the fraction
 with `sk_pacing_rate` and TCP's internal pacing, which BPF may set only on
-kernels 6.0 and later. Pacing below one packet delivered 1.8x the requested
-rate; [pending: E9 root cause and fidelity table].
+kernels 6.0 and later. On our first two kernels (Ubuntu 6.8.0-138 and
+mainline 6.8.0) sub-packet pacing delivered about 1.8x the requested rate,
+and the module halved its request to compensate. On Ubuntu 6.8.0-149 the
+pacer is exact (0.994-1.000x of the requested rate for windows of 0.05-0.5
+packets, E9), so the correction is now off by default (`--pace-halve`
+enables it) and must be measured per kernel. With it on, every fractional
+window paced at half its intended rate. [pending: E9 repeats, including an
+intermittent mode at about 0.4x.]
 
 ### 4.3 A lost lone packet costs the minimum RTO
 
@@ -214,24 +220,47 @@ Bulk flows (iperf3, one process per flow), a 64-byte RPC probe, synchronized
 incast, open-loop RPC workloads drawn from the DCTCP web-search distribution
 and a short-RPC mix, and per-wire-packet spraying at the receiver.
 
-### 5.4 Two harness pitfalls
+### 5.4 Three harness pitfalls
+
+Our first two sessions and the start of the third used a harness with three
+flaws, each of which changed some result by up to an order of magnitude. We
+found them on 2026-11-20 while explaining Swift's collapse at low targets;
+all results in Section 6 use the corrected harness (`results/2026-11-20b`),
+and the evidence for each flaw is in `results/2026-11-20`.
 
 1. **A single-threaded traffic generator couples flows.** iperf3 3.9 drives
    all `-P` streams from one thread with blocking writes. When one Swift flow
    drops to a window of 0.01 packets (one packet every ~30 ms), its full send
    buffer blocks the writes of every other stream. At a 100 µs target, no flow
-   was sending in 77% of 1 ms intervals (8 flows, 2026-11-20). With one
-   iperf3 process per flow, interleaved with the single-process mode over
-   three repeats (GRO on), Swift's utilization at a 100 µs target rose from
-   7-12% to 18-23% and no interval was idle; at 150 and 200 µs both modes
-   gave 87-96%, and Cubic and DCTCP were unaffected (79-81% and 92-95%).
-   The generator explained half of the collapse at 100 µs; the rest is the
-   host delay of Section 4.1.
-2. **An skb-counted buffer is not a packet-counted buffer.** With GRO on at
-   the receiver, the bottleneck FIFO's 300-packet limit counted GRO
-   aggregates; queued skbs averaged 5-55 KB in bulk runs, so the buffer held
-   up to about 16 MB and loss-based Cubic rarely saw a drop. Incast runs were
-   unaffected (1514 B per skb). GRO is now off at the bottleneck.
+   was sending in 77% of 1 ms intervals (8 flows). With one iperf3 process
+   per flow, interleaved with the single-process mode over three repeats,
+   Swift's utilization at 100 µs rose from 7-12% to 18-23% and no interval
+   was idle; at 150 and 200 µs both modes gave 87-96%, and Cubic and DCTCP
+   were unaffected. The generator explained half of the collapse at 100 µs;
+   the rest is the host delay of Section 4.1.
+2. **An skb-counted buffer is not a packet-counted buffer.** The bottleneck
+   runs on the receiver's ingress through an IFB device, after GRO. Its
+   300-packet FIFO limit counted GRO aggregates; queued skbs averaged
+   5-55 KB in bulk runs, so the buffer held up to about 16 MB. Turning GRO
+   off fixes the accounting but caps the IFB path at 2.9 Gb/s (its
+   per-packet cost), so we keep GRO on and bound the FIFO in bytes with
+   fq_codel's `memory_limit` (2,180 bytes of skb memory per 1,514-byte
+   packet, measured), which holds 300 packets at 10 Gb/s: Cubic now fills
+   it to 319 µs median with 0.8% retransmissions. Incast runs were
+   unaffected (1514 B per skb). Receiver-side spraying needs one decision
+   per wire packet and keeps GRO off at 1 Gb/s.
+3. **A global ECN setting changes the loss-based baseline.** We enabled
+   `tcp_ecn=1` so DCTCP could negotiate ECN. Because applications choose
+   the congestion control after `connect()`, DCTCP's own ECN request never
+   reaches the SYN, so only the global setting enabled ECN, and it did so
+   for every algorithm: our "Cubic" halved its window on the 50 µs CE marks
+   meant for DCTCP and filled 80% of the link. The sender's `tcp_ecn` is now
+   set per run (1 only for DCTCP); Cubic fills 96% with a full buffer, as a
+   loss-based algorithm should. Swift was unaffected (its `cong_control`
+   owns the window).
+
+These flaws affect the Cubic and Swift numbers in our progress reports; the
+qualitative incast and spraying findings are re-measured in Section 6.
 
 ### 5.5 Repetition and statistics
 
