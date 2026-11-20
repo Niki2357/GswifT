@@ -20,7 +20,7 @@ PEER_IP="${PEER_IP:-10.10.1.2}"
 if [[ -z "${OUT_ROOT:-}" ]]; then
     if [[ -d /mydata && -w /mydata ]]; then OUT_ROOT=/mydata/gswift; else OUT_ROOT="$HOME/gswift_results"; fi
 fi
-DATE="$(date +%Y-%m-%d)"
+DATE="${DATE:-$(date +%Y-%m-%d)}"   # override to separate runs within a day
 
 # Bottleneck defaults (receiver ingress).
 BN_RATE="${BN_RATE:-10gbit}"
