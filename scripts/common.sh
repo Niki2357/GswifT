@@ -101,7 +101,7 @@ stop_swift() {
 }
 
 # Bottleneck on the receiver.
-bn_up()   { peer sudo "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"; }
+bn_up()   { peer sudo BN_GRO="${BN_GRO:-off}" "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"; }
 bn_down() { peer sudo "$REPO/scripts/bottleneck.sh" down || true; }
 
 # Queue monitor on the receiver, writing to a peer-local temp file.
@@ -162,6 +162,7 @@ write_meta() {  # write_meta <dir> key=value ...
         echo "bn_rate=$BN_RATE"
         echo "bn_limit=$BN_LIMIT"
         echo "bn_ecn_us=$BN_ECN_US"
+        echo "bn_gro=${BN_GRO:-off}"
         echo "rep=$REP"
         echo "nstat_mode=delta"
         printf '%s\n' "$@"

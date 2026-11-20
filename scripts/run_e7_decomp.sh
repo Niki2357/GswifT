@@ -36,6 +36,9 @@ for cfg in $CONFIGS; do
     # Snap 96 bytes: headers only. Big buffers so the capture keeps up.
     sudo tcpdump -i "$IFACE" -s 96 -B 262144 -n -w "$d/tx.pcap" "tcp portrange $IPERF_PORT-$((IPERF_PORT + IPERF_PORT_SPAN - 1))" \
         </dev/null >"$d/tcpdump_tx.log" 2>&1 &
+    # tcpdump drops to its own user; a leftover file in sticky /tmp cannot be
+    # overwritten (protected_regular), so remove it first.
+    peer "sudo rm -f $CAP_PEER"
     peer "nohup sudo tcpdump -i \$(ip -br addr | awk '\$3 ~ /^10\\.10\\.1\\./ {print \$1; exit}') \
           -s 96 -B 262144 -n -w $CAP_PEER 'tcp portrange $IPERF_PORT-$((IPERF_PORT + IPERF_PORT_SPAN - 1))' </dev/null >/tmp/gswift_tcpdump_rx.log 2>&1 &"
     sleep 1.5

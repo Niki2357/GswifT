@@ -5,6 +5,11 @@
 # ECN_US get CE-marked if ECN-capable (only DCTCP is), so every algorithm sees
 # the same buffer.
 #
+# GRO is turned off on the interface while the bottleneck is up (restored by
+# `down`): with GRO on, the FIFO limit counts GRO aggregates of up to 64 KB,
+# not wire packets, so "300 packets" held up to ~16 MB in bulk runs (found
+# 2026-11-20). BN_GRO=on keeps GRO, for comparison with earlier sessions.
+#
 #   sudo bottleneck.sh up 10gbit 300 50     rate, buffer (packets), mark (us)
 #   sudo bottleneck.sh up 10gbit 300 50 0.25 300 5201
 #        ... plus spraying: a random fraction q (0.25) of TCP data packets to
@@ -63,15 +68,16 @@ up() {
     # out of reach (target 1s) so overflow at LIMIT is the only drop cause.
     local ce=""
     [[ "$ecn_us" -gt 0 ]] && ce="ce_threshold ${ecn_us}us"
+    if [[ "${BN_GRO:-off}" != on || -n "$q" ]] &&
+       ethtool -k "$IFACE" | grep -q '^generic-receive-offload: on'; then
+        touch /tmp/gswift_gro_was_on
+        ethtool -K "$IFACE" gro off
+    fi
     local fifo_parent=1:10
     if [[ -n "$q" ]]; then
         [[ "$delay_us" =~ ^[0-9]+$ && "$port" =~ ^[0-9]+$ ]] ||
             { echo "bad spray delay/port" >&2; exit 1; }
         build_spray "$q" "$port"
-        if ethtool -k "$IFACE" | grep -q '^generic-receive-offload: on'; then
-            touch /tmp/gswift_gro_was_on
-            ethtool -K "$IFACE" gro off
-        fi
         # Band 0 (2:1): slow path, served first once its delay has elapsed.
         # Band 1 (2:2): the shared FIFO, where everything unclassified goes.
         tc qdisc add dev "$IFB" parent 1:10 handle 2: prio bands 2 \
@@ -82,7 +88,7 @@ up() {
     fi
     tc qdisc add dev "$IFB" parent "$fifo_parent" handle 10: fq_codel flows 1 \
         limit "$limit" target 1s interval 2s drop_batch 1 ecn $ce
-    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate, buffer $limit pkts, CE ${ecn_us}us${q:+, spray q=$q +${delay_us}us port $port (GRO off)}"
+    echo "bottleneck up: $IFACE ingress -> $IFB, rate $rate, buffer $limit pkts, CE ${ecn_us}us, GRO $(ethtool -k "$IFACE" | awk '/^generic-receive-offload:/ {print $2}')${q:+, spray q=$q +${delay_us}us port $port}"
 }
 
 case "${1:-}" in
