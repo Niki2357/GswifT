@@ -130,6 +130,25 @@ probe_collect() {
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_probe.csv" "$1/probe.csv" 2>/dev/null || log "no probe data"
 }
 
+# Unloaded host RTT (no bottleneck): 64 B request/response, N samples.
+# Tracks the host-delay state between runs. Leaves the bottleneck down.
+host_baseline() {  # host_baseline <dir> [samples]
+    local dir="$1" n="${2:-5000}"
+    bn_down >/dev/null
+    probe_server_start
+    sleep 0.3
+    peer "$AGG -s $SELF_IP:$PROBE_PORT -n 1 -b 64 -r $n -w 100 -o /tmp/gswift_rr.csv" \
+        2>"$dir/rr.log" || log "baseline probe failed"
+    scp -q -o BatchMode=yes "$PEER:/tmp/gswift_rr.csv" "$dir/rr_64B.csv" || log "no baseline data"
+    probe_server_stop
+    python3 - "$dir/rr_64B.csv" <<'EOF' | tee "$dir/baseline.txt" >&2
+import sys, numpy as np, pandas as pd
+x = pd.read_csv(sys.argv[1])["fct_us"].to_numpy()
+p = np.percentile(x, [1, 50, 99, 99.9])
+print(f"tcp_rr_64B_us n={len(x)} p1={p[0]:.1f} p50={p[1]:.1f} p99={p[2]:.1f} p99.9={p[3]:.1f}")
+EOF
+}
+
 nstat_reset() { nstat -n >/dev/null 2>&1 || true; }
 nstat_save()  { nstat -z > "$1/nstat.txt" 2>&1 || true; }  # deltas since nstat_reset
 
