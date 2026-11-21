@@ -113,8 +113,20 @@ stop_swift() {
 }
 
 # Bottleneck on the receiver.
-bn_up()   { peer sudo BN_GRO="${BN_GRO:-on}" BN_BURST="${BN_BURST:-1m}" "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"; }
-bn_down() { peer sudo "$REPO/scripts/bottleneck.sh" down || true; }
+# BN_KIND=veth puts the bottleneck on the egress of the veth in front of the
+# receiver netns (scripts/rxns.sh) instead of IFB; set RX_NS=rx, PEER_IP=10.10.2.2
+# and QMON_DEV=vh with it (scripts/use_veth.sh does).
+bn_up() {
+    if [[ "${BN_KIND:-ifb}" == veth ]]; then
+        peer sudo BN_BURST="${BN_BURST:-1m}" "$REPO/scripts/rxns.sh" shape "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"
+    else
+        peer sudo BN_GRO="${BN_GRO:-on}" BN_BURST="${BN_BURST:-1m}" "$REPO/scripts/bottleneck.sh" up "${1:-$BN_RATE}" "${2:-$BN_LIMIT}" "${3:-$BN_ECN_US}"
+    fi
+}
+bn_down() {
+    if [[ "${BN_KIND:-ifb}" == veth ]]; then peer sudo "$REPO/scripts/rxns.sh" unshape || true
+    else peer sudo "$REPO/scripts/bottleneck.sh" down || true; fi
+}
 
 # Queue monitor on the receiver, writing to a peer-local temp file.
 QMON_REMOTE=/tmp/gswift_qmon.csv
@@ -177,6 +189,7 @@ write_meta() {  # write_meta <dir> key=value ...
         echo "bn_ecn_us=$BN_ECN_US"
         echo "bn_gro=${BN_GRO:-on}"
         echo "bn_burst=${BN_BURST:-1m}"
+        echo "bn_kind=${BN_KIND:-ifb}"
         echo "tcp_ecn_sender=$(sysctl -n net.ipv4.tcp_ecn)"
         echo "rep=$REP"
         echo "nstat_mode=delta"

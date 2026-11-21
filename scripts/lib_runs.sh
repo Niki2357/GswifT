@@ -103,7 +103,8 @@ run_incast() {  # run_incast <dir> <label> <flows> <bytes> <rounds> [extra swift
     sleep 0.5
     nstat_reset
     qmon_start
-    peer "$AGG -s $SELF_IP:$INCAST_PORT -n $flows -b $bytes -r $rounds -g 2000 -w 5 \
+    local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    peer "$pre $AGG -s $SELF_IP:$INCAST_PORT -n $flows -b $bytes -r $rounds -g 2000 -w 5 \
           -o /tmp/gswift_incast.csv" 2>"$dir/agg.log" || log "incast_agg failed (see agg.log)"
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_incast.csv" "$dir/incast.csv" || log "no incast data"
     qmon_stop "$dir"
@@ -130,7 +131,8 @@ run_rpc() {  # run_rpc <dir> <label> <cdf> <load> <seconds> [extra swift args...
     qmon_start
     local rate_bps
     rate_bps="$(python3 -c "import re,sys; m=re.match(r'([0-9.]+)([gmk]?)bit','$BN_RATE'.lower()); print(float(m[1])*{'g':1e9,'m':1e6,'k':1e3,'':1}[m[2]])")"
-    peer "$RPC_LOAD -s $SELF_IP:$INCAST_PORT -c ${RPC_CONNS:-128} -l $load -R $rate_bps \
+    local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    peer "$pre $RPC_LOAD -s $SELF_IP:$INCAST_PORT -c ${RPC_CONNS:-128} -l $load -R $rate_bps \
           -f $cdf -t $dur -w 1 -S ${REP:-1} -o /tmp/gswift_rpc.csv" 2>"$dir/rpc.log" ||
         log "rpc_load failed (see rpc.log)"
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_rpc.csv" "$dir/rpc.csv" || log "no rpc data"
