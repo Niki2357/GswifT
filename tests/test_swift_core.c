@@ -232,6 +232,30 @@ static void test_min_snd_cwnd(void)
     CHECK(sw_pace_rtt_us(&p, FP(2.5), 900, 40) == 900);
 }
 
+static void test_flow_scale_table(void)
+{
+    struct swift_params p = defaults();
+    p.fs_range_us = 200;
+    sw_params_finalize(&p);  // fills the lookup table the BPF build uses
+    // Off: zero everywhere.
+    struct swift_params off = defaults();
+    CHECK(sw_flow_scale_table_us(&off, FP(0.5)) == 0);
+    // Matches the exact 1/sqrt formula within 2% of the range (4 us) or 3 us
+    // over the table's span, and is monotone non-increasing in cwnd.
+    sw_u32 prev = 0xFFFFFFFF;
+    for (double c = 0.02; c < 64; c *= 1.05) {
+        sw_u32 exact = sw_flow_scale_us(&p, FP(c));
+        sw_u32 tab = sw_flow_scale_table_us(&p, FP(c));
+        CHECK(NEAR(tab, exact, 4));
+        CHECK(tab <= prev);
+        prev = tab;
+    }
+    // Endpoints: full range at or below fs_min, zero at or above 64 packets.
+    CHECK(sw_flow_scale_table_us(&p, FP(0.05)) == 200);
+    CHECK(sw_flow_scale_table_us(&p, FP(64)) == 0);
+    CHECK(sw_flow_scale_table_us(&p, FP(5000)) == 0);
+}
+
 static void test_target_jitter(void)
 {
     struct swift_params p = defaults();
@@ -403,6 +427,7 @@ int main(void)
     test_min_snd_cwnd();
     test_target_floor();
     test_target_jitter();
+    test_flow_scale_table();
     test_pacing();
     test_pace_gap_cap();
     test_pace_rtt_choice();

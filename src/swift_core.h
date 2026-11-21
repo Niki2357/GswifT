@@ -56,17 +56,55 @@ static inline sw_u64 sw_clamp(sw_u64 v, sw_u64 lo, sw_u64 hi)
     return v < lo ? lo : (v > hi ? hi : v);
 }
 
+// Flow-scaling table index for a window, or -1 at 64 packets and above.
+static inline int sw_fs_index(sw_u64 cwnd_fp)
+{
+    if (cwnd_fp < (1ULL << SW_FP_SHIFT))
+        return (int)(cwnd_fp >> (SW_FP_SHIFT - 8));
+    if (cwnd_fp < (8ULL << SW_FP_SHIFT))
+        return SW_FS_T0 + (int)((cwnd_fp - (1ULL << SW_FP_SHIFT)) >> (SW_FP_SHIFT - 5));
+    if (cwnd_fp < (64ULL << SW_FP_SHIFT))
+        return SW_FS_T0 + SW_FS_T1 +
+               (int)((cwnd_fp - (8ULL << SW_FP_SHIFT)) >> (SW_FP_SHIFT - 1));
+    return -1;
+}
+
+// Window at the middle of table bucket i (Q16), for filling the table.
+static inline sw_u64 sw_fs_bucket_mid(int i)
+{
+    if (i < SW_FS_T0)
+        return ((sw_u64)i << (SW_FP_SHIFT - 8)) + (1ULL << (SW_FP_SHIFT - 9));
+    i -= SW_FS_T0;
+    if (i < SW_FS_T1)
+        return (1ULL << SW_FP_SHIFT) + ((sw_u64)i << (SW_FP_SHIFT - 5)) +
+               (1ULL << (SW_FP_SHIFT - 6));
+    i -= SW_FS_T1;
+    return (8ULL << SW_FP_SHIFT) + ((sw_u64)i << (SW_FP_SHIFT - 1)) +
+           (1ULL << (SW_FP_SHIFT - 2));
+}
+
+// Flow scaling by table lookup: what the BPF build uses. Zero at 64 packets
+// and above (the exact value there is under 1% of the range with the
+// default fs_max_cwnd of 100).
+static inline sw_u32 sw_flow_scale_table_us(const struct swift_params *p,
+                                            sw_u64 cwnd_fp)
+{
+    if (p->fs_range_us == 0)
+        return 0;
+    if (cwnd_fp <= p->fs_min_cwnd_fp)
+        return p->fs_range_us;
+    int i = sw_fs_index(cwnd_fp);
+    if (i < 0 || i >= SW_FS_TABLE)
+        return 0;
+    return p->fs_table[i];
+}
+
+#ifndef SW_NO_FLOW_SCALING
 // Flow-based scaling: extra target proportional to 1/sqrt(cwnd), from
-// fs_range at fs_min_cwnd down to 0 at fs_max_cwnd.
+// fs_range at fs_min_cwnd down to 0 at fs_max_cwnd. Exact; userspace only.
 static inline sw_u32 sw_flow_scale_us(const struct swift_params *p,
                                       sw_u64 cwnd_fp)
 {
-#ifdef SW_NO_FLOW_SCALING
-    // BPF build: the sqrt below currently exceeds the verifier's budget.
-    (void)p;
-    (void)cwnd_fp;
-    return 0;
-#else
     if (p->fs_range_us == 0)
         return 0;
     if (cwnd_fp <= p->fs_min_cwnd_fp)
@@ -80,14 +118,28 @@ static inline sw_u32 sw_flow_scale_us(const struct swift_params *p,
         return 0;
     return (sw_u32)((sw_u64)p->fs_range_us * (inv_c - inv_lo) /
                     (inv_hi - inv_lo));
-#endif
 }
+#else
+// BPF build: the per-ACK sqrt exceeds the verifier's budget; use the table
+// the loader filled (sw_params_finalize).
+static inline sw_u32 sw_flow_scale_us(const struct swift_params *p,
+                                      sw_u64 cwnd_fp)
+{
+    return sw_flow_scale_table_us(p, cwnd_fp);
+}
+#endif
 
 // Fills derived fields. Call once after setting parameters (userspace).
 static inline void sw_params_finalize(struct swift_params *p)
 {
     p->fs_inv_lo_fp = sw_inv_sqrt_fp(p->fs_max_cwnd_fp);
     p->fs_inv_hi_fp = sw_inv_sqrt_fp(p->fs_min_cwnd_fp);
+#ifndef SW_NO_FLOW_SCALING
+    for (int i = 0; i < SW_FS_TABLE; i++) {
+        sw_u32 v = sw_flow_scale_us(p, sw_fs_bucket_mid(i));
+        p->fs_table[i] = v > 0xFFFF ? 0xFFFF : (sw_u16)v;
+    }
+#endif
 }
 
 static inline sw_u32 sw_target_us(const struct swift_params *p, sw_u64 cwnd_fp,

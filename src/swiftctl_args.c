@@ -169,9 +169,8 @@ static int validate(const struct swiftctl_opts *o)
         fprintf(stderr, "swiftctl: need fs-min-cwnd < fs-max-cwnd\n");
         return -1;
     }
-    if (p->fs_range_us) {
-        fprintf(stderr, "swiftctl: flow scaling is compiled out of the BPF "
-                        "module for now (verifier limit); use --fs-range 0\n");
+    if (p->fs_range_us > 0xFFFF) {
+        fprintf(stderr, "swiftctl: --fs-range must be at most 65535 us\n");
         return -1;
     }
     if (o->cfg.trace_every && !o->trace_path) {

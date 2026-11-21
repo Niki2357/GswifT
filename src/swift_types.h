@@ -25,6 +25,13 @@ typedef int64_t sw_s64;
 #define SW_FP_SHIFT 16
 #define SW_FP_ONE (1ULL << SW_FP_SHIFT)
 
+// Flow-scaling lookup table (the BPF build cannot afford a per-ACK sqrt):
+// cwnd < 1 in steps of 1/256, 1..8 in steps of 1/32, 8..64 in steps of 1/2.
+#define SW_FS_T0 256
+#define SW_FS_T1 224
+#define SW_FS_T2 112
+#define SW_FS_TABLE (SW_FS_T0 + SW_FS_T1 + SW_FS_T2)
+
 // MSwift median window is capped so it fits in per-socket CA state.
 #define SW_RING_SIZE 16
 #define SW_RING_MASK (SW_RING_SIZE - 1)
@@ -59,6 +66,7 @@ struct swift_params {
     // Derived by sw_params_finalize(), not set directly.
     sw_u64 fs_inv_lo_fp;    // 1/sqrt(fs_max_cwnd)
     sw_u64 fs_inv_hi_fp;    // 1/sqrt(fs_min_cwnd)
+    sw_u16 fs_table[SW_FS_TABLE]; // flow-scale target (us) per cwnd bucket
 };
 
 // Runtime configuration, stored in a one-entry BPF array map by the loader.
