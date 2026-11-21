@@ -54,6 +54,7 @@ trap 'spray_down; reorder_down; cleanup_all' EXIT
 
 tag="${REORDER_TOL:+-ro$REORDER_TOL}"
 [[ "$SPRAY_AT" == rx ]] && tag="$tag-rx"
+[[ "$FLOWS" == 8 ]] || tag="$tag-f$FLOWS"
 multi_delay=0; [[ "$DELAYS" == *" "* ]] && multi_delay=1
 
 # Sets up the path split for one run. tx: sender iptables + netem (counters
