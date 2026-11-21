@@ -56,6 +56,7 @@ def load_runs(root: Path, base_us: float) -> pd.DataFrame:
         df["load"] = float(meta.get("load", "nan"))
         df["variant"] = meta.get("variant", "?")
         df["bn"] = meta.get("bn_kind", "ifb")
+        df["conns"] = int(float(meta.get("conns", 128)))
         df["rep"] = int(float(meta.get("rep", 1)))
         frames.append(df)
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
@@ -64,13 +65,14 @@ def load_runs(root: Path, base_us: float) -> pd.DataFrame:
 def by_size_bin(df: pd.DataFrame) -> pd.DataFrame:
     """P50/P99 slowdown per size-quantile bin, per configuration (repeats pooled)."""
     rows = []
-    for (bn, w, load, v), g in df.groupby(["bn", "workload", "load", "variant"]):
+    for (bn, c, w, load, v), g in df.groupby(["bn", "conns", "workload", "load", "variant"]):
         g = g.sort_values("size", kind="stable").reset_index(drop=True)
         edges = np.linspace(0, len(g), N_BINS + 1).astype(int)
         for i in range(N_BINS):
             b = g.iloc[edges[i]:edges[i + 1]]
             if len(b):
-                rows.append({"bn": bn, "workload": w, "load": load, "variant": v, "bin": i,
+                rows.append({"bn": bn, "conns": c, "workload": w, "load": load, "variant": v,
+                             "bin": i,
                              "cum_pct": 100 * edges[i + 1] / len(g),
                              "size_max": int(b["size"].max()), "n": len(b),
                              "p50": b["slowdown"].quantile(0.5),
@@ -84,10 +86,11 @@ def summary(df: pd.DataFrame) -> pd.DataFrame:
     df = df.assign(cls=pd.cut(df["size"], [0, SHORT_MAX, LONG_MIN - 1, np.inf],
                               labels=["short", "medium", "long"], right=False))
     rows = []
-    for (bn, w, load, v, c), g in df.groupby(["bn", "workload", "load", "variant", "cls"],
-                                             observed=True):
+    for (bn, nc, w, load, v, c), g in df.groupby(
+            ["bn", "conns", "workload", "load", "variant", "cls"], observed=True):
         per_rep = g.groupby("rep")["slowdown"].quantile(0.99)
-        rows.append({"bn": bn, "workload": w, "load": load, "variant": v, "class": c,
+        rows.append({"bn": bn, "conns": nc, "workload": w, "load": load, "variant": v,
+                     "class": c,
                      "n": len(g),
                      "p50": g["slowdown"].median(), "p99": g["slowdown"].quantile(0.99),
                      "p99_lo": per_rep.min(), "p99_hi": per_rep.max()})
@@ -101,7 +104,7 @@ def plot(bins: pd.DataFrame, out_dir: Path) -> None:
     from analysis.figures import _color as color  # same per-variant colors
 
     out_dir.mkdir(exist_ok=True)
-    for (bn, w), gw in bins.groupby(["bn", "workload"]):
+    for (bn, w), gw in bins[bins["conns"] == 128].groupby(["bn", "workload"]):
         loads = sorted(gw["load"].unique())
         fig, axes = plt.subplots(1, len(loads), figsize=(5 * len(loads), 3.6),
                                  sharey=True, squeeze=False)
