@@ -324,8 +324,13 @@ mean of 100 µs the offset raised utilization from 17-28% to a median of 80%
 (38-93%). The floor-relative target behaves the same way, since flows'
 minimum RTTs differ (per-flow targets 132-158 µs at +100 µs headroom). We
 attribute this to de-synchronization: with identical targets, flows cross
-the target together and cut together. [pending: control with fixed targets
-equal to the highest per-flow target.]
+the target together and cut together. A control rules out the simpler
+explanation that the flows that draw the highest targets carry the load:
+with every flow at 120 µs, the highest target any flow drew with base 80 and
+J = 40, utilization was 19-28%, against 66-91% with the jittered targets
+(five repeats each, interleaved). The fixed 150 µs target collapsed in one
+of five repeats for the third time (28%), while base 130 with J = 40 held
+91-95% and a fixed 170 µs held 96% in every repeat.
 
 - 6.4 RPC workloads: slowdown versus message size (E8).
 ### 6.5 Incast
