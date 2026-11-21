@@ -21,6 +21,10 @@ COLORS = {
     "mswift-k4": "#e34948", "swift-fs": "#52514e",
     # Swift pacing variants: shades of Swift's hue, so the family reads as one.
     "swift-pmin": "#9ec5f0", "swift-pcap": "#1d5fae",
+    # Session-3 lone-packet fixes and targets.
+    "swift-fix": "#0b2f6b", "swift-pair": "#c49a00", "swift-rto": "#a33ea1",
+    "swift-pairrto": "#7a4f2a", "swift-t200": "#4d4d4d", "swift-t300": "#8c8c8c",
+    "swift-floor60": "#5aa9a3", "swift-floor100": "#1f6f69",
 }
 INK, MUTED = "#0b0b0b", "#52514e"
 
@@ -216,9 +220,9 @@ def e3_incast(df: pd.DataFrame, out: Path) -> Path | None:
     axes[0][0].set_ylabel("p99 round completion (ms, log)")
     axes[1][0].set_ylabel("retransmitted segments (%)")
     names = sorted(handles)
-    fig.legend([handles[n] for n in names], names, loc="lower center", ncol=len(names),
+    fig.legend([handles[n] for n in names], names, loc="lower center", ncol=min(len(names), 4),
                bbox_to_anchor=(0.5, 0), frameon=False)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.tight_layout(rect=(0, 0.10, 1, 1))
     fig.savefig(out)
     plt.close(fig)
     return out
