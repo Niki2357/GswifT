@@ -355,7 +355,7 @@ needed). Table 7.1 gives medians.
 | 1 Gb/s | 62 µs | 3 µs | 6 µs | 52 µs |
 | 3 Gb/s | 96 | 3 | 4 | 88 |
 | 6 Gb/s | 138 | 11 | 5 | 119 |
-| line rate (~24 Gb/s) | 346 | 21 | 4 | 321 |
+| unlimited | 346 | 21 | 4 | 321 |
 
 The receiver's TCP stack answers in 4-6 µs at every load, and the sender's
 stack and qdisc add little until line rate. Almost all of the sample, and all
@@ -366,7 +366,8 @@ and its endpoint/fabric split attributes; GSwifT has neither.
 
 The growth is driven by how much data the sender keeps in flight, not by the
 rate itself: with a 50 µs or 100 µs target and no bottleneck, eight Swift
-flows ran at 18-23 Gb/s on the 25 Gb/s link (E11), because a window bounded
+flows ran at 23 Gb/s on the 25 Gb/s link (validation runs; E11 repeats
+this), because a window bounded
 by the target also bounds the queues in the host. The large delays in
 Table 7.1 come from a window that never shrinks.
 
@@ -382,8 +383,8 @@ utilization).
 | Swift, one record per ACK | 1.05 | 4.1 | 2,345 ns |
 | MSwift (median of 16) | 0.69 | 4.2 | 844 ns |
 
-The control law itself is cheap: 131 ns per ACK, about 0.05 cores at these
-ACK rates. Telemetry through the ring buffer costs up to 18x that, so all
+The control law itself is cheap: 131 ns per ACK, under 0.02 cores at the
+roughly 125,000 calls per second of these runs. Telemetry through the ring buffer costs up to 18x that, so all
 evaluation runs sample one ACK in 4 or 16. MSwift's median over 16 samples
 is quadratic in the window and costs 6x Swift's update, still small. Swift
 and DCTCP each use about 2.5x Cubic's sender CPU at the same throughput;
