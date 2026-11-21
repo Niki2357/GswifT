@@ -340,8 +340,55 @@ from per-flow FCTs and the queue trace.]
 
 ## 7 Software overheads
 
-[pending: E9 cost table and the per-stage RTT timeline from E7, analogous to
-Homa/Linux Table 4 and Figure 7.]
+Homa/Linux found that software overheads, not network congestion, limit a
+kernel transport. For a delay-based controller the same overheads matter
+twice: they cost CPU, and they appear in the delay signal.
+
+**Where a Linux RTT sample's time goes** (E7). We captured headers on both
+hosts during single-flow transfers with no bottleneck and Swift's target set
+out of reach, so the window never shrinks, and split each RTT sample by
+matching ACK numbers within each host's capture (no clock synchronization
+needed). Table 7.1 gives medians.
+
+| Load (one flow, no bottleneck) | Module RTT | Sender TCP + qdisc | Receiver TCP turnaround | NIC, driver and interrupt paths (both hosts) + wire |
+|---|---|---|---|---|
+| 1 Gb/s | 62 µs | 3 µs | 6 µs | 52 µs |
+| 3 Gb/s | 96 | 3 | 4 | 88 |
+| 6 Gb/s | 138 | 11 | 5 | 119 |
+| line rate (~24 Gb/s) | 346 | 21 | 4 | 321 |
+
+The receiver's TCP stack answers in 4-6 µs at every load, and the sender's
+stack and qdisc add little until line rate. Almost all of the sample, and all
+of its growth with load, sits below TCP: in the NIC queues, drivers,
+interrupt handling and GRO of both hosts, which a TCP congestion control can
+neither see nor separate. This is the delay Swift's NIC timestamps exclude
+and its endpoint/fabric split attributes; GSwifT has neither.
+
+The growth is driven by how much data the sender keeps in flight, not by the
+rate itself: with a 50 µs or 100 µs target and no bottleneck, eight Swift
+flows ran at 18-23 Gb/s on the 25 Gb/s link (E11), because a window bounded
+by the target also bounds the queues in the host. The large delays in
+Table 7.1 come from a window that never shrinks.
+
+**CPU cost** (E9, eight flows through the 10 Gb/s bottleneck, all at 95.6%
+utilization).
+
+| | Sender cores | Receiver cores | BPF time per `cong_control` call |
+|---|---|---|---|
+| Cubic | 0.33 | 3.5 | (built-in) |
+| DCTCP | 0.83 | 5.3 | (built-in) |
+| Swift, telemetry off | 0.79 | 4.2 | 131 ns |
+| Swift, one record per 16 ACKs | 0.88 | 4.2 | 853 ns |
+| Swift, one record per ACK | 1.05 | 4.1 | 2,345 ns |
+| MSwift (median of 16) | 0.69 | 4.2 | 844 ns |
+
+The control law itself is cheap: 131 ns per ACK, about 0.05 cores at these
+ACK rates. Telemetry through the ring buffer costs up to 18x that, so all
+evaluation runs sample one ACK in 4 or 16. MSwift's median over 16 samples
+is quadratic in the window and costs 6x Swift's update, still small. Swift
+and DCTCP each use about 2.5x Cubic's sender CPU at the same throughput;
+both keep windows and queues small, which plausibly means smaller
+transmissions per send, though we did not measure segment sizes.
 
 ## 8 Related work
 
