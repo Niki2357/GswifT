@@ -375,7 +375,54 @@ N = 64 and 13.4 ms at N = 256. The best configurations' median round times
 are 13-23 ms and 60-110 ms, 4-8x the ideal. [pending: where the gap goes,
 from per-flow FCTs and the queue trace.]
 
-- 6.6 Multipath spraying and MSwift (E4, per-packet, delay sweep).
+### 6.6 Multipath spraying and MSwift
+
+The receiver's bottleneck (1 Gb/s, GRO off) sends each data packet, chosen
+independently with probability q, through a slow path that adds 300 or
+1000 µs; the measured share matched q within 0.02 in every run. Linux's
+loss recovery is made reordering-tolerant (RACK off, `tcp_reordering` 64);
+without it, every algorithm's window is cut by fast recovery on reordering
+and the delay signal never matters (report 2). Base target 100 µs, two
+repeats (which agree within 0.02 Gb/s).
+
+| Flows | Slow path | Variant | q = 0.1 | 0.25 | 0.35 | 0.5 |
+|---|---|---|---|---|---|---|
+| 1 | +300 µs | Swift | 0.68 Gb/s | 0.24 | 0.13 | 0.03 |
+| 1 | +300 µs | MSwift (median) | 0.95 | 0.58 | 0.16 | 0.03 |
+| 1 | +300 µs | MSwift, k = 4 | 0.95 | 0.95 | 0.54 | 0.18 |
+| 1 | +1000 µs | Swift | 0.45 | 0.13 | 0.05 | 0.01 |
+| 1 | +1000 µs | MSwift | 0.95 | 0.21 | 0.06 | 0.01 |
+| 1 | +1000 µs | MSwift, k = 4 | 0.95 | 0.62 | 0.19 | 0.05 |
+| 2 | +300 µs | Swift | 0.95 | 0.47 | 0.24 | 0.06 |
+| 2 | +300 µs | MSwift | 0.95 | 0.91 | 0.33 | 0.06 |
+| 2 | +300 µs | MSwift, k = 4 | 0.95 | 0.95 | 0.95 | 0.35 |
+| 8 | +300 µs | Swift | 0.95 | 0.95 | 0.84 | 0.23 |
+| 8 | +300 µs | MSwift | 0.95 | 0.95 | 0.95 | 0.25 |
+| 8 | +300 µs | MSwift, k = 4 | 0.95 | 0.95 | 0.95 | 0.95 |
+
+With q = 0, every variant delivers 0.95 Gb/s; Cubic delivers 0.95-0.96 at
+every q, at the cost of 700-1,050 fast recoveries per run.
+
+**Swift collapses faster than the model predicts.** MSwift's analysis has
+Swift's throughput falling as `1/sqrt(q)`. Here, once the decline starts it
+is much steeper: for one flow at +300 µs throughput falls 5x from q = 0.1 to
+0.35 (a log-log slope of about -1.3), and for two flows 2x from 0.25 to 0.35
+(slope about -2). With 8 flows each window is about one packet and the
+decline starts only at q = 0.35.
+
+**The median helps only as far as its window reaches.** MSwift uses the
+median of the last `max(cwnd/2, 1)` samples, capped at 16. At 1 Gb/s one
+flow's window is about nine packets, so the median spans four samples and
+holds full throughput to q = 0.1 but not 0.25; with two flows (median of
+two or three) it holds to 0.25. With eight flows the window is about one
+packet, the median degenerates to the latest sample, and MSwift behaves like
+Swift.
+
+**Reordering tolerance carries most of the benefit.** Decreasing only after
+four consecutive over-target samples holds full throughput to q = 0.25 (one
+flow), 0.35 (two flows) and 0.5 (eight flows, +300 µs). It needs no window
+of samples, so it works where the median cannot.
+
 - 6.7 Buffer occupancy.
 
 ## 7 Software overheads
