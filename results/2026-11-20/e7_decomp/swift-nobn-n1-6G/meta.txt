@@ -1,0 +1,17 @@
+date=2026-11-20T13:23:20-07:00
+host=node0.niki2357-327007.gt-8803-dns-pg0.utah.cloudlab.us
+iface=enp65s0f0np0
+bn_rate=10gbit
+bn_limit=300
+bn_ecn_us=50
+bn_gro=off
+rep=1
+nstat_mode=delta
+variant=swift
+kcc=swift
+swift_args=--base-target 100 --trace-every 4  --base-target 100000 --trace-every 1
+flows=1
+duration_s=4
+iperf_mode=per-flow
+bottleneck=nobn
+offered=6G

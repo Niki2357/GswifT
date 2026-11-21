@@ -1,0 +1,84 @@
+tcp_rr_64B_us n=5000 p1=40.5 p50=41.8 p99=53.6 p99.9=84.8
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[12:39:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t100-r1
+[12:39:49] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t150-r1
+[12:40:10] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t200-r1
+[12:40:32] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t300-r1
+[12:40:54] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/cubic-n8-r1
+[12:41:15] bulk: dctcp flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/dctcp-n8-r1
+tcp_rr_64B_us n=5000 p1=40.6 p50=42.2 p99=54.6 p99.9=74.3
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[12:41:39] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t100-r2
+[12:42:07] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t150-r2
+[12:42:28] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t200-r2
+[12:42:50] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t300-r2
+[12:43:11] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/cubic-n8-r2
+[12:43:33] bulk: dctcp flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/dctcp-n8-r2
+tcp_rr_64B_us n=5000 p1=36.3 p50=42.0 p99=52.8 p99.9=63.3
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[12:43:57] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t100-r3
+[12:44:22] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t150-r3
+[12:44:47] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t200-r3
+[12:45:09] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t300-r3
+[12:45:31] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/cubic-n8-r3
+[12:45:52] bulk: dctcp flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/dctcp-n8-r3
+tcp_rr_64B_us n=5000 p1=35.5 p50=40.0 p99=54.4 p99.9=60.8
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[12:46:16] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t100-r4
+[12:46:43] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t150-r4
+[12:47:05] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t200-r4
+[12:47:26] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t300-r4
+[12:47:48] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/cubic-n8-r4
+[12:48:09] bulk: dctcp flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/dctcp-n8-r4
+tcp_rr_64B_us n=5000 p1=41.2 p50=42.7 p99=55.3 p99.9=73.9
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 300 pkts, CE 50us
+[12:48:33] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t100-r5
+[12:48:55] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t150-r5
+[12:49:17] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t200-r5
+[12:49:38] bulk: swift flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e2_target/t300-r5
+[12:50:00] bulk: cubic flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/cubic-n8-r5
+[12:50:21] bulk: dctcp flows=8 15s -> /users/niki2357/gswift_results/2026-11-20/e1_compare/dctcp-n8-r5
+bottleneck down
+[12:50:44] block done
+bottleneck down
+Warning: sch_htb: quantum of class 10010 is big. Consider r2q change.
+bottleneck up: enp65s0f0np0 ingress -> ifb0, rate 10gbit, buffer 100 pkts, CE 50us
+[12:50:46] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n64-r1
+[12:51:11] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n64-r1
+[12:51:19] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n64-r1
+[12:51:45] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n64-r1
+[12:52:12] incast: dctcp N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n64-r1
+[12:52:42] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n128-r1
+[12:53:09] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n128-r1
+[12:53:38] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n128-r1
+[12:54:05] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n128-r1
+[12:54:43] incast: dctcp N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n128-r1
+[12:55:18] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n64-r2
+[12:55:44] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n64-r2
+[12:55:51] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n64-r2
+[12:56:17] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n64-r2
+[12:56:43] incast: dctcp N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n64-r2
+[12:57:10] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n128-r2
+[12:57:38] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n128-r2
+[12:58:06] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n128-r2
+[12:58:33] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n128-r2
+[12:59:06] incast: dctcp N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n128-r2
+[12:59:40] incast: swift N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n64-r3
+[13:00:05] incast: swift-nofrac N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n64-r3
+[13:00:12] incast: swift-pcap N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n64-r3
+[13:00:38] incast: cubic N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n64-r3
+[13:01:05] incast: dctcp N=64 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n64-r3
+[13:01:32] incast: swift N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-n128-r3
+[13:02:00] incast: swift-nofrac N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-nofrac-n128-r3
+[13:02:28] incast: swift-pcap N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/swift-pcap-n128-r3
+[13:02:56] incast: cubic N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/cubic-n128-r3
+[13:03:34] incast: dctcp N=128 65536B x 100 rounds -> /users/niki2357/gswift_results/2026-11-20/e3_incast/dctcp-n128-r3
+bottleneck down
+[13:04:09] E3 done
+bottleneck down
+EXIT=0

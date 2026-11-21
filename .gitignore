@@ -24,3 +24,8 @@ results/2026-11-20*/**/probe.csv
 results/2026-11-20*/**/rpc.csv
 results/2026-11-20*/**/iperf/
 results/archive/
+# Superseded session-3 runs (256 KB HTB bucket), kept locally only
+results/2026-11-20b/e3_incast/
+results/2026-11-20b/e1_compare/
+results/2026-11-20b/e2_target/
+results/2026-11-20b/host/
