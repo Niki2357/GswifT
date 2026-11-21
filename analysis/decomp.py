@@ -120,6 +120,8 @@ def decompose(run: Path) -> dict[str, float]:
         parts["wire_queue"] = j
         row["matched"] = len(j)
     tr = run / "trace.csv"
+    if not tr.exists() and (run / "trace.csv.gz").exists():
+        tr = run / "trace.csv.gz"
     if tr.exists():
         t = pd.read_csv(tr, usecols=["type", "rtt_us"])
         parts["module"] = t[(t["type"] == 0) & (t["rtt_us"] > 0)].rename(columns={"rtt_us": "us"})

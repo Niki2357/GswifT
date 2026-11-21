@@ -193,3 +193,11 @@ def test_iperf_goodput_uses_sender_duration(tmp_path: Path) -> None:
     r = loaders.load_iperf(p)
     assert r.goodput_bps == pytest.approx(120.3e6, rel=0.001)
     assert r.per_flow_bps[0] == pytest.approx(120.3e6, rel=0.001)
+
+
+def test_load_csv_reads_gzipped_copy(tmp_path: Path) -> None:
+    import gzip
+    with gzip.open(tmp_path / "qmon.csv.gz", "wt") as f:
+        f.write("ts,backlog_bytes\n1.0,10\n2.0,20\n")
+    df = loaders.load_csv(tmp_path / "qmon.csv")
+    assert list(df["backlog_bytes"]) == [10, 20]

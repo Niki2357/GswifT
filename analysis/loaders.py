@@ -105,7 +105,13 @@ def load_iperf(path: Path) -> IperfResult | None:
 
 
 def load_csv(path: Path, dtype: dict[str, type] | None = None) -> pd.DataFrame | None:
-    """CSV reader tolerant of a truncated last line (process killed mid-write)."""
+    """CSV reader tolerant of a truncated last line (process killed mid-write).
+    Falls back to a gzipped copy (<name>.gz), as large files are compressed
+    on the nodes before copying."""
+    if not path.exists():
+        gz = path.with_name(path.name + ".gz")
+        if gz.exists():
+            path = gz
     if not path.exists() or path.stat().st_size == 0:
         return None
     try:

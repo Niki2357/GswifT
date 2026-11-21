@@ -130,10 +130,13 @@ bn_down() {
 
 # Queue monitor on the receiver, writing to a peer-local temp file.
 QMON_REMOTE=/tmp/gswift_qmon.csv
-qmon_start() { peer "nohup sudo python3 $REPO/scripts/qmon.py ${QMON_DEV:-ifb0} $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
+# Any monitor left from an aborted run keeps appending to the same file
+# (found 2026-11-20: 5 leaked monitors, 20 GB of qmon.csv), so start and stop
+# kill every instance by name ("qmon.p[y]" cannot match its own command line).
+qmon_start() { peer "sudo pkill -f 'qmon.p[y]' 2>/dev/null; rm -f $QMON_REMOTE; nohup sudo python3 $REPO/scripts/qmon.py ${QMON_DEV:-ifb0} $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
 qmon_stop()  {
     local dir="$1"
-    peer 'sudo kill $(cat /tmp/gswift_qmon.pid) 2>/dev/null; sleep 0.3' || true
+    peer "sudo pkill -INT -f 'qmon.p[y]' 2>/dev/null; sleep 0.3" || true
     scp -q -o BatchMode=yes "$PEER:$QMON_REMOTE" "$dir/qmon.csv" 2>/dev/null || log "no qmon data"
     peer sudo tc -s qdisc show dev "${QMON_DEV:-ifb0}" > "$dir/tc_final.txt" 2>&1 || true
 }
