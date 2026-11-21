@@ -286,7 +286,47 @@ Repeats interleaved across the session; medians with min-max ranges.
 
 - 6.1 Basic latency and throughput (table: unloaded RTT, 1 and 8 flows).
 - 6.2 Delay-signal fidelity (E0, E7).
-- 6.3 Steady state against the target (E1/E2 block; floor-relative target).
+### 6.3 Steady state against the target
+
+Eight bulk flows share the 10 Gb/s bottleneck; Swift's base target is swept
+from 50 to 300 µs, interleaved with Cubic and DCTCP, five repeats.
+
+| | Utilization | Queue p99 | RPC p99 |
+|---|---|---|---|
+| Cubic | 95.7% (95.7-95.7) | 391 µs | 519 µs |
+| DCTCP | 96.9% (95.6-102) | 160 | 453 |
+| Swift, 50-100 µs target | 16.5-17.5% | 1 | 128-181 |
+| Swift, 150 µs | 91.8% (29.6-93.5) | 148 | 343 |
+| Swift, 200 µs | 95.5% (95.3-95.6) | 174 | 455 |
+| Swift, 300 µs | 95.6% (95.6-95.6) | 277 | 421 |
+| Swift, flow min-RTT + 100 µs | 94.4% (92.8-95.3) | 142 | 513 |
+
+**At 200 µs and above, Swift matches DCTCP's utilization** with a bounded
+queue and no loss, and keeps the queue far below Cubic's full buffer.
+
+**Below 150 µs the limit is the emulator, not Swift** (E11). Without a
+bottleneck, so that the sender's 25 Gb/s NIC is the limit, the same eight
+Swift flows run at 22.5-23.6 Gb/s at every target from 50 to 300 µs. Behind
+the IFB bottleneck they fall to 1.7-1.8 Gb/s at 50-100 µs, and behind a veth
+bottleneck (receiver in a network namespace, shaping on the veth egress) to
+3.2, 4.7 and 7.7 Gb/s at 50, 75 and 100 µs; both reach 9.3-9.6 Gb/s from
+150 µs. Section 5.2 attributes the difference to delay the software shaper
+adds when it is saturated (about 80 µs for IFB at a 100 µs target). A
+delay-controlled sender on Linux can hold RTT near 50 µs at line rate; a
+timer-driven software shaper cannot emulate a switch at that scale.
+
+**Near the floor, Swift is bistable, and per-flow target diversity removes
+it.** At 150 µs one repeat in five collapsed (30-32%) in both the main block
+and a later, independent block. With a per-flow random offset (each flow's
+target is base + U[0, J), drawn at connection start) and the same mean
+target, every repeat held 93-96% (base 130, J = 40; base 110, J = 80). At a
+mean of 100 µs the offset raised utilization from 17-28% to a median of 80%
+(38-93%). The floor-relative target behaves the same way, since flows'
+minimum RTTs differ (per-flow targets 132-158 µs at +100 µs headroom). We
+attribute this to de-synchronization: with identical targets, flows cross
+the target together and cut together. [pending: control with fixed targets
+equal to the highest per-flow target.]
+
 - 6.4 RPC workloads: slowdown versus message size (E8).
 ### 6.5 Incast
 
