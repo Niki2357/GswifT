@@ -13,6 +13,9 @@ variant() {
         swift-fs)     echo "swift|--fs-range 200" ;;
         swift-pmin)   echo "swift|--pace-min-rtt" ;;
         swift-pcap)   echo "swift|--pace-min-rtt --max-pace-gap ${PACE_GAP_US:-1000}" ;;
+        # Linux window floor (burst size per pacing gap): swift-t<base>m<k>.
+        swift-t[0-9]*m[0-9]*) local b="${1#swift-t}"
+            echo "swift|--base-target ${b%%m*} --min-snd-cwnd ${b#*m}" ;;
         # Flow-based target scaling: swift-t<base>fs<range>.
         swift-t[0-9]*fs[0-9]*) local b="${1#swift-t}"
             echo "swift|--base-target ${b%%fs*} --fs-range ${b#*fs}" ;;
@@ -133,6 +136,7 @@ run_rpc() {  # run_rpc <dir> <label> <cdf> <load> <seconds> [extra swift args...
     sleep 0.5
     nstat_reset
     qmon_start
+    local c0 p0; c0="$(head -1 /proc/stat)"; p0="$(peer head -1 /proc/stat)"
     local rate_bps
     rate_bps="$(python3 -c "import re,sys; m=re.match(r'([0-9.]+)([gmk]?)bit','$BN_RATE'.lower()); print(float(m[1])*{'g':1e9,'m':1e6,'k':1e3,'':1}[m[2]])")"
     local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
@@ -142,6 +146,9 @@ run_rpc() {  # run_rpc <dir> <label> <cdf> <load> <seconds> [extra swift args...
     peer "$pre $RPC_LOAD -s $SELF_IP:$INCAST_PORT -c ${RPC_CONNS:-128} -l $load -R $rate_bps \
           -f $cdf -t $dur -w 1 -S ${REP:-1} -o /tmp/gswift_rpc.csv" 2>"$dir/rpc.log" ||
         log "rpc_load failed (see rpc.log)"
+    printf '%s\n%s\n' "$c0" "$(head -1 /proc/stat)" > "$dir/cpu_sender.txt"
+    printf '%s\n%s\n' "$p0" "$(peer head -1 /proc/stat)" > "$dir/cpu_receiver.txt"
+    printf 'ncpu_sender=%s\nncpu_receiver=%s\n' "$(nproc)" "$(peer nproc)" >> "$dir/meta.txt"
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_rpc.csv" "$dir/rpc.csv" || log "no rpc data"
     qmon_stop "$dir"
     nstat_save "$dir"
