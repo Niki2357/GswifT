@@ -52,6 +52,32 @@ Same node type as 2026-11-09, so those numbers can be compared with care
 | Jitter blocks | fixed vs per-flow-jittered targets, two blocks x 5 | plus a fixed-max control |
 | E8 on veth | swift-t200/t300, cubic, dctcp; flow scaling; burst sizes | 80% load investigation |
 
+## Outcomes (details and tables in reports/final/paper.md)
+
+1. Bulk, 8 flows, 10 Gb/s: Swift at 200 µs 95.5% (queue p99 174 µs, no
+   loss) vs DCTCP 96.9% (160 µs) and Cubic 95.7% (391 µs, 0.8% retx).
+2. Below 150 µs the emulator limits Swift: with no bottleneck Swift runs at
+   22.5-23.6 Gb/s at every target down to 50 µs (E11); IFB gives 1.7-1.8 Gb/s
+   and veth 3.2-7.7 Gb/s at 50-100 µs.
+3. Swift at 150 µs collapses in about 1 of 5 repeats (three blocks);
+   per-flow target jitter (same mean) removes it, and a fixed-max control
+   rules out the max-target explanation.
+4. E7: the load-dependent part of the RTT sample is in the NIC/driver/
+   interrupt paths of both hosts (receiver TCP turnaround 4-6 µs); E10: no
+   standard knob removes it, and disabling GRO or TSO makes it worse.
+5. E9: pacing exact on 6.8.0-149; cong_control 131 ns per ACK; telemetry up
+   to 2.3 µs per ACK.
+6. Incast: with default rto_min, loss recovery dominates; with all module
+   fixes Swift's fractional window reaches 124 ms p99 at N=256, level with
+   Cubic/DCTCP at rto_min 5 ms (102-121 ms); Swift retransmits 10-100x less.
+7. MSwift: Swift's decline is steeper than 1/sqrt(q); the median helps only
+   when windows hold several packets; reordering tolerance (k=4) carries most
+   of the benefit.
+8. RPC workloads: Swift at 200 µs matches Cubic/DCTCP at 50% load (veth) but
+   collapses at 80% on both bottlenecks; RTT inflates with an empty queue,
+   CPU doubles; bursts of 4 per pacing gap help 4-10x; flow scaling, a 300 µs
+   target and fewer connections help little. Open.
+
 ## Problems found and fixed during the session
 
 1. iperf3 3.9 single-threaded: coupled flows (77% of 1 ms intervals idle at
