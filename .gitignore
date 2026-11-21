@@ -15,3 +15,12 @@ __pycache__/
 results/**/trace.csv
 results/**/figs/*.png.tmp
 results/**/*.pcap
+results/**/trace.csv.gz
+# Session 3 (2026-11-20*) raw files are too large for git: they live in the
+# session archive (results/archive/, not committed). Tables and figures are.
+results/2026-11-20*/**/qmon.csv
+results/2026-11-20*/**/qmon.csv.gz
+results/2026-11-20*/**/probe.csv
+results/2026-11-20*/**/rpc.csv
+results/2026-11-20*/**/iperf/
+results/archive/
