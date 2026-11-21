@@ -104,6 +104,7 @@ run_incast() {  # run_incast <dir> <label> <flows> <bytes> <rounds> [extra swift
     nstat_reset
     qmon_start
     local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    peer "sudo rm -f /tmp/gswift_incast.csv"
     peer "$pre $AGG -s $SELF_IP:$INCAST_PORT -n $flows -b $bytes -r $rounds -g 2000 -w 5 \
           -o /tmp/gswift_incast.csv" 2>"$dir/agg.log" || log "incast_agg failed (see agg.log)"
     scp -q -o BatchMode=yes "$PEER:/tmp/gswift_incast.csv" "$dir/incast.csv" || log "no incast data"
@@ -132,6 +133,9 @@ run_rpc() {  # run_rpc <dir> <label> <cdf> <load> <seconds> [extra swift args...
     local rate_bps
     rate_bps="$(python3 -c "import re,sys; m=re.match(r'([0-9.]+)([gmk]?)bit','$BN_RATE'.lower()); print(float(m[1])*{'g':1e9,'m':1e6,'k':1e3,'':1}[m[2]])")"
     local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    # In the netns the client runs as root, and fs.protected_regular stops even
+    # root from reopening another user's file in /tmp: remove it first.
+    peer "sudo rm -f /tmp/gswift_rpc.csv"
     peer "$pre $RPC_LOAD -s $SELF_IP:$INCAST_PORT -c ${RPC_CONNS:-128} -l $load -R $rate_bps \
           -f $cdf -t $dur -w 1 -S ${REP:-1} -o /tmp/gswift_rpc.csv" 2>"$dir/rpc.log" ||
         log "rpc_load failed (see rpc.log)"

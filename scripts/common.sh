@@ -152,6 +152,7 @@ probe_server_start() {
 probe_server_stop() { [[ -n "$PROBE_WORKER_PID" ]] && kill "$PROBE_WORKER_PID" 2>/dev/null || true; PROBE_WORKER_PID=""; }
 probe_run() {  # probe_run <dir> <seconds>   (runs in background on peer)
     local pre=""; [[ -n "${RX_NS:-}" ]] && pre="sudo ip netns exec $RX_NS"
+    peer "sudo rm -f /tmp/gswift_probe.csv"
     peer "$pre $AGG -s $SELF_IP:$PROBE_PORT -n 1 -b 64 -t $2 -g 200 -w 50 -o /tmp/gswift_probe.csv" \
         2>"$1/probe.log" &
     PROBE_PID=$!
