@@ -133,7 +133,9 @@ QMON_REMOTE=/tmp/gswift_qmon.csv
 # Any monitor left from an aborted run keeps appending to the same file
 # (found 2026-11-20: 5 leaked monitors, 20 GB of qmon.csv), so start and stop
 # kill every instance by name ("qmon.p[y]" cannot match its own command line).
-qmon_start() { peer "sudo pkill -f 'qmon.p[y]' 2>/dev/null; rm -f $QMON_REMOTE; nohup sudo python3 $REPO/scripts/qmon.py ${QMON_DEV:-ifb0} $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
+# The kill runs in its own ssh call: a shell whose command line also contains
+# the start command would match the pattern and kill itself.
+qmon_start() { peer "sudo pkill -f 'qmon.p[y]'" 2>/dev/null || true; peer "rm -f $QMON_REMOTE; nohup sudo python3 $REPO/scripts/qmon.py ${QMON_DEV:-ifb0} $QMON_REMOTE </dev/null >/dev/null 2>&1 & echo \$! > /tmp/gswift_qmon.pid"; }
 qmon_stop()  {
     local dir="$1"
     peer "sudo pkill -INT -f 'qmon.p[y]' 2>/dev/null; sleep 0.3" || true
